@@ -1,0 +1,122 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor Author
+boundary "Create Image Chapter UI" as UI
+boundary Router
+control ImageChapterController
+control ImageChapterService
+entity ChapterModel
+entity ImageChapterModel
+entity MangaModel
+control EventEmitter
+database MongoDB
+boundary FileSystem
+boundary Sharp
+
+Author -> UI: 1. Submit create image chapter form (images)
+activate Author
+activate UI
+
+UI -> Router: 2. POST /chapter-image
+activate Router
+
+alt Token invalid
+    Router --> UI: 2.1.1. Show error
+    UI --> Author: 2.1.2. Error message
+else Role invalid
+    Router --> UI: 2.2.1. Show error
+    UI --> Author: 2.2.2. Error message
+end
+
+Router -> ImageChapterController: 3. create(dto, files)
+activate ImageChapterController
+
+ImageChapterController -> ImageChapterService: 4. createChapterWithImages(dto, files)
+activate ImageChapterService
+
+ImageChapterService -> ChapterModel: 5. create(chapter)
+activate ChapterModel
+ChapterModel -> MongoDB: 6. insert chapter
+activate MongoDB
+MongoDB --> ChapterModel: 7. chapter document
+deactivate MongoDB
+ChapterModel --> ImageChapterService: 8. chapter
+deactivate ChapterModel
+
+ImageChapterService -> FileSystem: 9. create chapter image directory
+activate FileSystem
+FileSystem --> ImageChapterService: 10. directory ready
+deactivate FileSystem
+
+loop For each image
+    ImageChapterService -> Sharp: 11. convert buffer → webp
+    activate Sharp
+    Sharp --> ImageChapterService: 12. saved image file
+    deactivate Sharp
+end
+
+ImageChapterService -> ImageChapterModel: 13. findOne(chapter_id)
+activate ImageChapterModel
+ImageChapterModel -> MongoDB: 14. query imageChapter
+activate MongoDB
+MongoDB --> ImageChapterModel: 15. imageChapter / null
+deactivate MongoDB
+ImageChapterModel --> ImageChapterService: 16. imageChapter
+deactivate ImageChapterModel
+
+alt ImageChapter exists
+    ImageChapterService -> ImageChapterModel: 16.1.1. save(updated images)
+    activate ImageChapterModel
+    ImageChapterModel -> MongoDB: 16.1.2. update document
+    activate MongoDB
+    MongoDB --> ImageChapterModel: 16.1.3. result
+    deactivate MongoDB
+    deactivate ImageChapterModel
+else ImageChapter not exist
+    ImageChapterService -> ImageChapterModel: 16.2.1. create(imageChapter)
+    activate ImageChapterModel
+    ImageChapterModel -> MongoDB: 16.2.2. insert document
+    activate MongoDB
+    MongoDB --> ImageChapterModel: 16.2.3. imageChapter
+    deactivate MongoDB
+    ImageChapterModel --> ImageChapterService: 16.2.4. imageChapter
+    deactivate ImageChapterModel
+
+    ImageChapterService -> MangaModel: 16.3.1. findById(manga_id)
+    activate MangaModel
+    MangaModel -> MongoDB: 16.3.2. query manga
+    activate MongoDB
+    MongoDB --> MangaModel: 16.3.3. manga
+    deactivate MongoDB
+    MangaModel --> ImageChapterService: 16.3.4. manga
+    deactivate MangaModel
+
+    ImageChapterService -> EventEmitter: 16.4.1. emit chapter_create_count
+    activate EventEmitter    
+    deactivate EventEmitter
+end
+
+ImageChapterService --> ImageChapterController: 17. {chapter, imageChapter}
+deactivate ImageChapterService
+
+ImageChapterController --> Router: 18. HTTP 201 response
+deactivate ImageChapterController
+Router --> UI: 19. Show created image chapter
+deactivate Router
+UI --> Author: 20. Create image chapter success
+deactivate UI
+deactivate Author
+@enduml

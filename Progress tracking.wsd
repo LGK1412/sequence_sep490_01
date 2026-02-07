@@ -1,0 +1,110 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Chapter Detail Page (UI)" as UI
+boundary Router
+control ChapterController
+control ChapterService
+entity ProgressModel
+entity ChapterModel
+entity HistoryModel
+control EventListener
+database MongoDB
+
+User -> UI: 1. Read & scroll chapter
+activate User
+activate UI
+UI -> Router: 2. POST progress
+activate Router
+Router -> ChapterController: 3. createChapterProgress()
+
+activate ChapterController
+ChapterController -> ChapterController: 4. Parse params & convert ObjectId
+activate ChapterController
+ChapterController -> ChapterService: 5. createChapterProgress(user_id, chapter_id, percent)
+deactivate ChapterController
+
+' 1. Read old progress
+activate ChapterService
+ChapterService -> ProgressModel: 6. Request previous progress
+activate ProgressModel
+ProgressModel -> MongoDB: 7. Find progress by user & chapter
+activate MongoDB
+MongoDB --> ProgressModel: 8. Progress document / null
+deactivate MongoDB
+ProgressModel --> ChapterService: 9. Old progress data
+deactivate ProgressModel
+
+' 2. Evaluate completion state
+ChapterService -> ChapterService: 10. Determine wasCompleted & isNowCompleted
+activate ChapterService
+
+
+' 3. Save / update progress
+ChapterService -> ProgressModel: 11. Save updated progress
+deactivate ChapterService
+activate  ProgressModel
+ProgressModel -> MongoDB: 12. Upsert progress record
+activate MongoDB
+MongoDB --> ProgressModel: 13. Updated progress
+deactivate MongoDB
+ProgressModel --> ChapterService: 14. chapterProgress
+deactivate ProgressModel
+
+' 4. Emit completion event
+opt Chapter just completed
+    ChapterService -> EventListener: 14.1. Emit chapter_completed event
+    activate EventListener
+    deactivate EventListener
+end
+
+' 5. Load chapter
+ChapterService -> ChapterModel: 15. Request chapter info
+activate ChapterModel
+ChapterModel -> MongoDB: 16. Find chapter by ID
+activate MongoDB
+MongoDB --> ChapterModel: 17. Chapter document
+deactivate MongoDB
+ChapterModel --> ChapterService: 18. Chapter data
+deactivate ChapterModel
+
+' 6. Early return if no manga
+opt Chapter has no manga
+    ChapterService --> ChapterController: 18.1. Return chapterProgress
+    ChapterController --> Router: 18.2. HTTP response
+    Router --> UI: 18.3. Progress saved
+    UI --> User: 18.4. Progress saved
+end
+' 7. Update reading history
+ChapterService -> HistoryModel:.19.  Update reading history
+activate HistoryModel
+HistoryModel -> MongoDB: 20. Upsert history record
+activate MongoDB
+MongoDB --> HistoryModel: 21. Updated history
+deactivate MongoDB
+HistoryModel --> ChapterService: 22. History result
+deactivate HistoryModel
+
+ChapterService --> ChapterController: 23. Return chapterProgress
+deactivate ChapterService
+ChapterController --> Router: 24. HTTP response
+deactivate ChapterController
+Router --> UI: 25. Progress saved
+deactivate Router
+UI --> User: 26. Progress saved
+deactivate UI
+deactivate User
+@enduml

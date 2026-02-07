@@ -1,0 +1,35 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor "System" as System
+control NotificationService as NotiService
+database MongoDB
+control "Firebase Admin" as Firebase
+
+System -> NotiService: 1. createNotification(noti)
+activate NotiService
+
+NotiService -> MongoDB: 2. insert notification (noti.save)
+activate MongoDB
+MongoDB --> NotiService: 3. saved
+deactivate MongoDB
+
+NotiService -> Firebase: 4. sendEachForMulticast(tokens,title,body)
+activate Firebase
+Firebase --> NotiService: 5. successCount/failureCount
+deactivate Firebase
+
+NotiService --> System: 6. return send result
+deactivate NotiService
+@enduml

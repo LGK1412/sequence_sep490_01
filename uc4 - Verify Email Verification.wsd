@@ -1,0 +1,119 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Verify Email Page" as UI
+boundary Router
+control AuthController
+control AuthService
+control UserService
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Click verification link in email
+activate User
+activate UI
+
+UI -> Router: 2. POST /api/auth/verify-email (code)
+activate Router
+
+Router -> AuthController: 3. verificationEmail(code)
+activate AuthController
+
+AuthController -> AuthService: 4. verificationEmail(token)
+
+activate AuthService
+
+alt Missing token
+    AuthService --> AuthController: 4.1.1. Throw BadRequestException\n(Missing verification token)
+    AuthController --> Router: 4.1.2. HTTP 400 response
+    Router --> UI: 4.1.3. Show error
+    UI --> User: 4.1.4. Missing verification token
+else Invalid or expired token
+    AuthService --> AuthController: 4.2.1. Throw BadRequestException\n(Invalid or expired token)
+    AuthController --> Router: 4.2.2. HTTP 400 response
+    Router --> UI: 4.2.3. Show error
+    UI --> User: 4.2.4. Invalid or expired token
+else Invalid token payload
+    AuthService --> AuthController: 4.3.1. Throw BadRequestException\n(Invalid token)
+    AuthController --> Router: 4.3.2. HTTP 400 response
+    Router --> UI: 4.3.3. Show error
+    UI --> User: 4.3.4. Invalid token
+end
+
+AuthService -> UserService: 5. findByEmail(email)
+activate UserService
+UserService -> UserModel: 6. findOne({ email })
+activate UserModel
+UserModel -> MongoDB: 7. findOne({ email })
+activate MongoDB
+MongoDB --> UserModel: 8. User data
+deactivate MongoDB
+UserModel --> UserService: 9. Result
+deactivate UserModel
+UserService --> AuthService: 10. Result
+deactivate UserService
+
+alt User not found or banned
+    AuthService --> AuthController: 10.1.1. Throw BadRequestException\n(User does not exist or has been banned)
+    AuthController --> Router: 10.1.2. HTTP 400 response
+    Router --> UI: 10.1.3. Show error
+    UI --> User: 10.1.4. User invalid
+else User already verified
+    AuthService --> AuthController: 10.2.1. Throw BadRequestException\n(User has already been verified)
+    AuthController --> Router: 10.2.2. HTTP 400 response
+    Router --> UI: 10.2.3. Show message
+    UI --> User: 10.2.4. Already verified
+else Code mismatch
+    AuthService --> AuthController: 10.3.1. Throw BadRequestException\n(Invalid code)
+    AuthController --> Router: 10.3.2. HTTP 400 response
+    Router --> UI: 10.3.3. Show error
+    UI --> User: 10.3.4. Request new verification email
+end
+
+AuthService -> UserService: 11. Update verified status
+activate UserService
+UserService -> UserModel: 12. set verified = true
+activate UserModel
+UserModel -> MongoDB: 13. Update verified status
+activate MongoDB
+MongoDB --> UserModel: 14. Update success
+deactivate MongoDB
+UserModel --> UserService: 15. Update success
+deactivate UserModel
+
+UserService --> AuthService: 16. Result
+deactivate UserService
+
+alt Update verification failed
+    AuthService --> AuthController: 16.1. Throw BadRequestException
+    AuthController --> Router: 16.2. HTTP 400 response
+    Router --> UI: 16.3. Show error
+    UI --> User: 16.4. Verification failed
+end
+
+AuthService --> AuthController: 17. Return success message
+deactivate AuthService
+
+AuthController --> Router: 18. HTTP 200 response
+deactivate AuthController
+
+Router --> UI: 19. Verification success
+deactivate Router
+
+UI --> User: 20. Redirect to login page
+deactivate UI
+deactivate User
+@enduml

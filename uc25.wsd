@@ -1,0 +1,55 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "NavBar" as UI
+boundary Router
+control MangaController as MC
+control MangaService as MS
+database MongoDB
+
+User -> UI: 1. Click Random button
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/manga/random
+activate Router
+
+Router -> MC: 3. getRandom()
+activate MC
+
+MC -> MS: 4. getRandomManga()
+activate MS
+
+MS -> MongoDB: 5. aggregate pipeline\n($match isDeleted=false,isPublish=true\n$lookup chapters published\n$match has chapters\n$sample 1\n$project _id,title)
+activate MongoDB
+MongoDB --> MS: 6. Random story / null
+deactivate MongoDB
+
+alt 7. No story found
+  MS --> MC: 7.1 null
+  MC --> Router: 7.2 404 NotFound
+  Router --> UI: 7.3 Show error
+else 8. Found
+  MS --> MC: 8.1 {_id,title}
+  MC --> Router: 8.2 HTTP 200
+  Router --> UI: 8.3 Navigate to story detail by _id
+end
+
+deactivate MS
+deactivate MC
+deactivate Router
+deactivate UI
+deactivate User
+@enduml

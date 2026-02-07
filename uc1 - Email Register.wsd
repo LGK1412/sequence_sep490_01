@@ -1,0 +1,86 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Register Page" as UI
+boundary Router
+control AuthController
+control AuthService
+boundary HashUtils
+control UserService
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Enter username, email, password\nAccept terms & submit
+activate User
+activate UI
+
+UI -> Router: 2. POST /api/auth/register
+activate Router
+
+Router -> AuthController: 3. register(registerDto)
+activate AuthController
+
+AuthController -> AuthService: 4. register(registerDto)
+activate AuthService
+
+ref over AuthService, UserService, UserModel, MongoDB
+    5. Subsequence - Check duplicate email and username
+end ref
+
+alt Username already exists
+    AuthService --> AuthController: 5.1.1. Throw BadRequestException
+    AuthController --> Router: 5.1.2. HTTP 400 response
+    Router --> UI: 5.1.3. Show error message
+    UI --> User: 5.1.4. Username already exists
+else Email already exists
+    AuthService --> AuthController: 5.2.1. Throw BadRequestException
+    AuthController --> Router: 5.2.2. HTTP 400 response
+    Router --> UI: 5.2.3. Show error message
+    UI --> User: 5.2.4. Email already exists
+end
+
+AuthService -> HashUtils: 6. Hash password
+activate HashUtils
+HashUtils --> AuthService: 7. Hashed password
+deactivate HashUtils
+
+AuthService -> UserService: 8. Create new user
+
+activate UserService
+UserService -> UserModel: 9. insert user
+activate UserModel
+UserModel -> MongoDB: 10. Insert user data
+activate MongoDB
+MongoDB --> UserModel: 11. New user data
+deactivate MongoDB
+UserModel --> UserService: 12. New user created
+deactivate UserModel
+
+UserService --> AuthService: 13. User entity
+deactivate UserService
+
+AuthService --> AuthController: 14. Return { success: true }
+deactivate AuthService
+
+AuthController --> Router: 15. HTTP 200 response
+deactivate AuthController
+
+Router --> UI: 16. Registration success
+deactivate Router
+UI --> User: 17. Show success message
+deactivate UI
+deactivate User
+@enduml

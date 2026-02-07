@@ -1,0 +1,43 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Navbar" as Navbar
+control "ThemeProvider" as Theme
+database "Local Storage" as Storage
+
+User -> Navbar: 1. Click theme toggle
+activate User
+activate Navbar
+
+Navbar -> Theme: 2. setTheme(dark ? light : dark)
+activate Theme
+
+Theme -> Storage: 3. Persist theme
+activate Storage
+alt 4. Storage unavailable
+  Storage --> Theme: 4.1 Fail
+  Theme --> Navbar: 4.2 Apply for session
+else 5. Saved
+  Storage --> Theme: 5.1 OK
+end
+deactivate Storage
+
+Theme --> Navbar: 6. Trigger re-render with new theme
+deactivate Theme
+
+Navbar --> User: 7. See updated theme
+deactivate Navbar
+deactivate User
+@enduml

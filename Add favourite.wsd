@@ -1,0 +1,101 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Manga Detail Page (UI)" as UI
+boundary Router
+control UserController
+control UserService
+control JwtService
+control EventEmitter
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Click Favourite / Unfavourite
+activate User
+activate UI
+
+UI -> Router: 2. POST /toggle-favourite
+activate Router
+
+Router -> UserController: 3. toggleFavourite()
+activate UserController
+UserController -> UserService: 4. toggleFavourite(token, mangaId)
+
+activate UserService
+UserService -> JwtService: 5. Verify access token
+activate JwtService
+
+opt Missing token
+    UserService --> UserController: 5.1. Error response
+    UserController --> Router: 5.2. HTTP error response
+    Router --> UI: 5.3. HTTP error response
+    UI --> User: 5.4. Show error
+end
+
+JwtService --> UserService: 6. Decoded user_id
+deactivate JwtService
+UserService -> UserModel: 7. Find user & populate favourites
+activate UserModel
+UserModel -> MongoDB: 8. findById + populate
+activate MongoDB
+MongoDB --> UserModel: 9. User document
+deactivate MongoDB
+UserModel --> UserService: 10. User data
+deactivate UserModel
+
+opt User not found
+    UserService --> UserController: 10.1. Error response
+    UserController --> Router: 10.2. HTTP error response
+    Router --> UI: 10.3. HTTP error response
+    UI --> User: 10.4. Show error
+end
+
+
+opt Already favourite (REMOVE)
+    UserService -> UserService: 11. Remove manga from favourites
+    activate  UserService
+end
+
+deactivate UserService
+UserService -> UserService: 12. Add manga to favourites
+activate  UserService
+
+UserService -> EventEmitter: 13. Emit favorite_story_count
+deactivate UserService
+activate EventEmitter
+
+UserService -> UserModel: 14. Save updated favourites
+deactivate EventEmitter
+
+activate UserModel
+UserModel -> MongoDB: 15. Save user
+activate MongoDB
+MongoDB --> UserModel: 16. Saved
+deactivate MongoDB
+UserModel --> UserService: 17. Save result
+deactivate UserModel
+
+UserService --> UserController: 18. Return favourites & isFavourite
+deactivate UserService
+
+UserController --> Router: 19. HTTP response
+deactivate UserController
+Router --> UI: 20. Update favourite state
+deactivate Router
+UI --> User: 21. Show result
+deactivate UI
+deactivate User
+@enduml

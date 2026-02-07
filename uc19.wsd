@@ -1,0 +1,69 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Notification Page" as UI
+boundary Router
+control NotificationController as NC
+control NotificationService as NS
+database MongoDB
+
+User -> UI: 1. Click notification to mark read
+activate User
+activate UI
+
+UI -> Router: 2. PATCH /api/notification/mark-noti-as-read/{id}
+activate Router
+
+Router -> NC: 3. markNotiAsRead(id, req)
+activate NC
+NC -> NC: 4. Guard check (AccessToken + Roles)
+
+NC -> NS: 5. markAsRead(id, payload)
+activate NS
+
+NS -> NS: 6. checkUser(payload.user_id)
+alt 7. User invalid / banned / no permission
+  NS --> NC: 7.1 400 error
+  NC --> Router: 7.2 HTTP error
+  Router --> UI: 7.3 Show error
+else 8. OK
+  NS -> MongoDB: 8.1 findOne({_id:id, receiver_id:payload.user_id})
+  activate MongoDB
+  MongoDB --> NS: 8.2 noti / null
+  deactivate MongoDB
+
+  alt 9. Notification not found
+    NS --> NC: 9.1 404 NotFound
+    NC --> Router: 9.2 HTTP 404
+    Router --> UI: 9.3 Show not found
+  else 10. Found
+    NS -> NS: 10.1 set is_read=true; expireAt=now+14d
+    NS -> MongoDB: 10.2 save()
+    activate MongoDB
+    MongoDB --> NS: 10.3 updated noti
+    deactivate MongoDB
+
+    NS --> NC: 10.4 return updated noti
+    NC --> Router: 10.5 HTTP 200
+    Router --> UI: 10.6 Update UI
+  end
+end
+
+deactivate NS
+deactivate NC
+deactivate Router
+deactivate UI
+deactivate User
+@enduml

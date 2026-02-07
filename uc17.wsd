@@ -1,0 +1,38 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+control NotificationService as NotiService
+control "Firebase Admin" as Firebase
+
+User -> NotiService: 1. sendNotification(notification)
+activate User
+activate NotiService
+
+NotiService -> NotiService: 2. Get tokens from notification.deviceId\n(array or single)
+alt 3. No tokens
+  NotiService --> User: 3.1 {successTokens:[], failedTokens:[]}
+else 4. Has tokens
+  NotiService -> Firebase: 4.1 sendEachForMulticast(tokens,title,body)
+  activate Firebase
+  Firebase --> NotiService: 4.2 successCount/failureCount + per-token results
+  deactivate Firebase
+
+  NotiService -> NotiService: 4.3 Build successTokens/failedTokens
+  NotiService --> User: 4.4 Return delivery result
+end
+
+deactivate NotiService
+deactivate User
+@enduml

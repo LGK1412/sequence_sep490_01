@@ -1,0 +1,68 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Profile Page" as UI
+boundary Router
+control UserController
+control UserService
+database MongoDB
+
+User -> UI: 1. Click "Edit Profile"
+activate User
+activate UI
+
+User -> UI: 2. Edit username/bio/avatar & submit
+
+UI -> Router: 3. PATCH /api/user/profile (form-data)
+activate Router
+
+Router -> UserController: 4. updateProfile(body,file,req)
+activate UserController
+UserController -> UserService: 5. updateProfile(userPayload, updateData)
+activate UserService
+
+alt 6. Invalid session/userPayload
+  UserService --> UserController: 6.1 400 BadRequest\n(Invalid user information)
+else 7. OK
+  alt 7.1 No changes
+    UserService --> UserController: 7.1.1 200 {success:true, message:\"No changes to update\"}
+  else 7.2 Has changes
+    alt 7.2.1 Username changed & exists
+      UserService --> UserController: 7.2.1.1 400 BadRequest\n(Username already exists)
+    else 7.2.2 Update DB
+      UserService -> MongoDB: 7.2.2.1 findByIdAndUpdate(...)
+      activate MongoDB
+      MongoDB --> UserService: 7.2.2.2 updated user / null
+      deactivate MongoDB
+
+      alt 7.2.3 Update failed
+        UserService --> UserController: 7.2.3.1 400 BadRequest\n(Unable to update profile)
+      else 7.2.4 Success
+        UserService --> UserController: 7.2.4.1 200 {success:true, user}
+      end
+    end
+  end
+end
+
+deactivate UserService
+UserController --> Router: 8. HTTP response
+deactivate UserController
+
+Router --> UI: 9. Show success / error
+deactivate Router
+
+deactivate UI
+deactivate User
+@enduml

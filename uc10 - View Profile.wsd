@@ -1,0 +1,62 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Profile Page" as UI
+boundary Router
+control AuthController
+control AuthService
+database MongoDB
+
+User -> UI: 1. Click Avatar
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/auth/me (cookie)
+activate Router
+
+loop 4. Invalid token / expired token / Invalid role
+  Router --> UI: 4.2 Show error
+  UI --> User: 4.3 Cannot load profile
+end 
+
+Router -> AuthController: 9. getMe(req)
+activate AuthController
+AuthController -> AuthService: 10. getMe(req)
+activate AuthService
+
+AuthService -> MongoDB: 11. findById(req.user.user_id)
+activate MongoDB
+MongoDB --> AuthService: 12. user / null
+deactivate MongoDB
+
+alt User not found
+  AuthService --> AuthController: 12.1. UnauthorizedException
+  AuthController --> Router: 12.2. HTTP response
+  Router --> UI: 12.3. Show error
+  UI --> User: 12.4. Cannot load profile
+end
+  
+AuthService --> AuthController: 14.1 Profile data
+
+deactivate AuthService
+
+AuthController --> Router: 15. HTTP response
+deactivate AuthController
+Router --> UI: 16. Render profile / show error
+deactivate Router
+UI --> User: 17. Show profile
+deactivate UI
+deactivate User
+@enduml

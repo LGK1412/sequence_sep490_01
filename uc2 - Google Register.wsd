@@ -1,0 +1,107 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Register Page" as UI
+boundary Router
+control AuthController
+control AuthService
+control GoogleOAuth
+control UserService
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Click "Register with Google"
+activate User
+activate UI
+
+UI -> GoogleOAuth: 2. Open Google register popup
+activate GoogleOAuth
+
+GoogleOAuth --> UI: 3. Return idToken
+deactivate GoogleOAuth
+
+UI -> Router: 4. POST /api/auth/google (idToken)
+activate Router
+
+Router -> AuthController: 5. loginWithGoogle(idToken)
+activate AuthController
+
+AuthController -> AuthService: 6. loginWithGoogle(idToken)
+
+activate AuthService
+AuthService -> GoogleOAuth: 7. verifyIdToken(idToken)
+activate GoogleOAuth
+
+GoogleOAuth --> AuthService: 8. token payload / error
+deactivate GoogleOAuth
+
+alt Invalid Google token
+    AuthService --> AuthController: 8.1.1 Throw UnauthorizedException
+    AuthController --> Router: 8.1.2 HTTP 401 response
+    Router --> UI: 8.1.3 Show authentication error
+    UI --> User: 8.1.4 Google authentication failed
+else Email missing or not verified
+    AuthService --> AuthController: 8.2.1 Throw UnauthorizedException
+    AuthController --> Router: 8.2.2 HTTP 401 response
+    Router --> UI: 8.2.3 Show verification error
+    UI --> User: 8.2.4 Google email not verified
+end
+
+AuthService -> UserService: 9. findByEmail(email)
+activate UserService
+UserService -> UserModel: 10. findOne({ email })
+activate UserModel
+UserModel -> MongoDB: 11. Get user data
+activate MongoDB
+MongoDB --> UserModel: 11. User / null
+deactivate MongoDB
+UserModel --> UserService: 12. User / null
+deactivate UserModel
+UserService --> AuthService: 12. Result
+deactivate UserService
+
+opt User not found
+    AuthService -> UserService: 12.1.1 createUserGoogle()
+    activate UserService
+    UserService -> UserModel: 12.1.2. insert new user (verified = true)
+    activate UserModel
+    UserModel -> MongoDB: 12.1.3. Insert user data
+    activate MongoDB
+    MongoDB --> UserModel: 12.1.4 New user created
+    deactivate MongoDB
+    UserModel --> UserService: 12.1.5 New user
+    deactivate UserModel
+    UserService --> AuthService: 12.1.6 New user
+    deactivate UserService
+else User already exists
+    AuthService -> AuthService: 12.2.1 Use existing user
+    activate AuthService
+end
+
+AuthService --> AuthController: 14. Return accessToken & tokenPayload
+deactivate AuthService
+deactivate AuthService
+
+AuthController -> Router: 15. Set HTTP-only cookie (access_token)
+deactivate AuthController
+
+Router --> UI: 16. Register success response
+deactivate Router
+
+UI --> User: 17. Redirect to home page
+deactivate UI
+deactivate User
+@enduml

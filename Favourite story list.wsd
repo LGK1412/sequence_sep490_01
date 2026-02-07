@@ -1,0 +1,84 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Favourite Manga Page (UI)" as UI
+boundary Router
+control UserController
+control UserService
+control JwtService
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Open favourite list
+activate User
+activate UI
+
+UI -> Router: 2. GET /favourites
+activate Router
+
+Router -> UserController: 3. getFavourites()
+activate UserController
+UserController -> UserService: 4. getFavourites(token)
+activate UserService
+
+opt No token
+    UserService --> UserController: 4.1. Return 400 Bad Request
+    UserController --> Router: 4.2. Return 400 Bad Request
+    Router --> UI: 4.3. Return 400 Bad Request
+    UI --> User: 4.4. Show error
+end
+
+UserService -> JwtService: 5. Verify access token
+activate JwtService
+JwtService --> UserService: 6. Decoded user information
+deactivate JwtService
+
+opt Invalid token
+    UserService --> UserController: 6.1. Throw error: User does not exist
+    UserController --> Router: 6.2. HTTP error response
+    Router --> UI: 6.3. HTTP error response
+    UI --> User: 6.4. Show error
+end
+
+UserService -> UserModel: 7. Find user & populate favourites + styles
+activate UserModel
+UserModel -> MongoDB: 8. findById + populate favourites.styles
+activate MongoDB
+MongoDB --> UserModel: 9. User with favourites
+deactivate MongoDB
+UserModel --> UserService: 10. User data
+deactivate UserModel
+
+opt User not found
+    UserService --> UserController: 10.1. Throw error: User does not exist
+    UserController --> Router: 10.2. HTTP error response
+    Router --> UI: 10.3. HTTP error response
+    UI --> User: 10.4. Show error
+end
+
+UserService --> UserController: 11. Return favourites list
+deactivate UserService
+
+UserController --> Router: 12. HTTP response
+deactivate UserController
+
+Router --> UI: 13. Render favourites
+deactivate Router
+
+UI --> User: 14. Display favourite mangas
+deactivate UI
+deactivate User
+@enduml

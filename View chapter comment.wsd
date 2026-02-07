@@ -1,0 +1,71 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Chapter Comment Section (UI)" as UI
+boundary Router
+control CommentController
+control CommentService
+control ReplyService
+entity CommentModel
+database MongoDB
+
+User -> UI: 1. Open chapter comments
+activate User
+activate UI
+
+UI -> Router: 2. GET /all-comment-chapter/{chapterId}
+activate Router
+
+Router -> CommentController: 3. getAllCommentForChapter(chapterId)
+activate CommentController
+
+opt Token Invalid
+    CommentController --> Router: 3.1.1. 401 Unauthorized
+    Router --> UI: 3.1.2. Show error
+    UI --> User: 3.1.3. Show error
+end
+
+CommentController -> CommentService: 4. getAllCommentForChapter(chapterId, payload)
+
+activate CommentService
+
+CommentService -> CommentModel: 5. Aggregate comments by chapter
+activate CommentModel
+CommentModel --> CommentService: 6. Comment list
+deactivate CommentModel
+
+CommentService -> ReplyService: 7. getReplyCountByChapter(chapterId)
+activate ReplyService
+ReplyService -> MongoDB: 8. Aggregate reply counts
+activate MongoDB
+MongoDB --> ReplyService: 9. replyMap
+deactivate MongoDB
+ReplyService --> CommentService: 10. Reply count data
+deactivate ReplyService
+
+CommentService -> CommentService: 11. Merge replyCount & usernames
+activate CommentService
+CommentService --> CommentController: 12. Return comments
+deactivate CommentService
+deactivate CommentService
+CommentController --> Router: 13. HTTP response
+deactivate CommentController
+Router --> UI: 14. Render comments
+deactivate Router
+UI --> User: 15. View comments
+deactivate UI
+deactivate User
+@enduml

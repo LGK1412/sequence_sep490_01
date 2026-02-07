@@ -1,0 +1,55 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Chapter Page" as UI
+boundary Router
+control ChapterController as CC
+control ChapterService as CS
+database MongoDB
+
+User -> UI: 1. Open chapter page
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/chapter/content/{chapterId}
+activate Router
+
+Router -> CC: 3. getChapterContentById(id)
+activate CC
+
+CC -> CS: 4. getChapterCompact(ObjectId(chapterId))
+activate CS
+
+CS -> MongoDB: 5. aggregate chapter + lookup textchapters/imagechapters
+activate MongoDB
+MongoDB --> CS: 6. chapter data (may be empty)
+deactivate MongoDB
+
+alt 7. Chapter not found / invalid id
+  CS --> CC: 7.1 error
+  CC --> Router: 7.2 HTTP 4xx
+  Router --> UI: 7.3 Show "Chapter not available"
+else 8. OK
+  CS --> CC: 8.1 chapter content
+  CC --> Router: 8.2 HTTP 200
+  Router --> UI: 8.3 Render chapter
+end
+
+deactivate CS
+deactivate CC
+deactivate Router
+deactivate UI
+deactivate User
+@enduml

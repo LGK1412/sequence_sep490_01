@@ -1,0 +1,53 @@
+@startuml
+
+title Subsequence - Check duplicate email and username
+
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+control AuthService
+control UserService
+entity UserModel
+database MongoDB
+
+AuthService -> UserService: 1. Get user by email
+activate AuthService
+activate UserService
+UserService -> UserModel: 2. findOne({ email })
+activate UserModel
+UserModel -> MongoDB: 3. Get user data
+activate MongoDB
+MongoDB --> UserModel: 4. User / null
+deactivate MongoDB
+UserModel --> UserService: 5. User / null
+deactivate UserModel
+UserService --> AuthService: 6. Result
+deactivate UserService
+
+AuthService -> UserService: 7. Get user by username
+activate UserService
+UserService -> UserModel: 8. findOne({ username })
+activate UserModel
+UserModel -> MongoDB: 9. Get user data
+activate MongoDB
+MongoDB --> UserModel: 10. User / null
+deactivate MongoDB
+UserModel --> UserService: 11. User / null
+deactivate UserModel
+UserService --> AuthService: 12. Result
+deactivate AuthService
+deactivate UserService
+
+
+@enduml

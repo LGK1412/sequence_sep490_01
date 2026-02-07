@@ -1,0 +1,50 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Home / Story Page" as UI
+boundary Router
+control MangaController as MC
+control MangaService as MS
+database MongoDB
+
+User -> UI: 1. Open story list
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/manga/get/all?page=1&limit=24
+activate Router
+
+Router -> MC: 3. getAll(page, limit)
+activate MC
+MC -> MC: 4. Parse + clamp page/limit
+
+MC -> MS: 5. getAllManga(p, l)
+activate MS
+MS -> MS: 6. Build aggregation pipeline
+MS -> MongoDB: 7. aggregate(pipeline)
+activate MongoDB
+MongoDB --> MS: 8. {data,total}
+deactivate MongoDB
+
+MS --> MC: 9. return {data,total}
+deactivate MS
+MC --> Router: 10. HTTP 200 {data,total,page,limit}
+deactivate MC
+
+Router --> UI: 11. Render story cards
+deactivate Router
+deactivate UI
+deactivate User
+@enduml

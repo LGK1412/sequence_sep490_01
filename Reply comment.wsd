@@ -1,0 +1,123 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Chapter Comment Section (UI)" as UI
+boundary Router
+control ReplyController
+control ReplyService
+control ChapterService
+control MangaService
+control UserService
+control NotificationService
+entity ReplyModel
+database MongoDB
+
+User -> UI: 1. Reply to a comment
+activate User
+activate UI
+
+UI -> Router: 2. POST /create-reply-chapter
+activate Router
+
+Router -> ReplyController: 3. createCommentChapter(dto, req)
+activate ReplyController
+
+opt Token / Role Invalid
+    ReplyController --> Router: 3.1 401 / 403 Error
+    Router --> UI: 3.2 Show error
+    UI --> User: 3.3 Error message
+end
+
+ReplyController -> ReplyService: 4. createReplyChapter(dto, payload)
+activate ReplyService
+
+ReplyService -> ReplyService: 5. checkLegitUser(payload)
+activate ReplyService
+
+alt User not exist
+    ReplyService --> ReplyController: 5.1 Error
+    deactivate ReplyService
+    ReplyController --> Router: 5.2 400 Error
+    Router --> UI: 5.3 Show error
+    UI --> User: 5.4 Error message
+else User is banned
+    ReplyService --> ReplyController: 5.5 Error
+    ReplyController --> Router: 5.6 403 Error
+    Router --> UI: 5.7 Show error
+    UI --> User: 5.8 Error message
+end
+
+ReplyService -> ReplyModel: 6. save reply
+activate ReplyModel
+ReplyModel -> MongoDB: 7. insert reply
+activate MongoDB
+MongoDB --> ReplyModel: 8. savedReply
+deactivate MongoDB
+ReplyModel --> ReplyService: 9. savedReply
+deactivate ReplyModel
+
+opt Create Reply Failed
+    ReplyService --> ReplyController: 9.1. Error
+    ReplyController --> Router: 9.2. 500 Error
+    Router --> UI: 9.3 Show error
+    UI --> User: 9.4 Error message
+end
+
+ReplyService -> ChapterService: 10. getChapterById(chapter_id)
+activate ChapterService
+ChapterService --> ReplyService: 11. chapter
+deactivate ChapterService
+
+ReplyService -> MangaService: 12. get author
+activate MangaService
+MangaService --> ReplyService: 13. manga
+deactivate MangaService
+
+opt Invalid manga id
+    ReplyService --> ReplyController: 13.1. Error
+    ReplyController --> Router: 13.2. 400 Error
+    Router --> UI: 13.3 Show error
+    UI --> User: 13.4 Error message
+end
+
+ReplyService -> UserService: 14. getUserById(receiver_id)
+activate UserService
+UserService --> ReplyService: 15. receiver
+deactivate UserService
+
+ReplyService -> NotificationService: 16. createNotification(dto)
+activate NotificationService
+NotificationService --> ReplyService: 17. send_noti_result
+deactivate NotificationService
+
+opt Manga has author
+    ReplyService -> UserService: 17.1. removeDeviceId(authorId, send_noti_result)
+    activate UserService
+    UserService --> ReplyService: 17.2. done
+    deactivate UserService
+end
+
+ReplyService --> ReplyController: 18. savedReply
+deactivate ReplyService
+
+ReplyController --> Router: 19. HTTP response (success)
+deactivate ReplyController
+Router --> UI: 20. Update UI
+deactivate Router
+UI --> User: 21. View new reply
+deactivate UI
+deactivate User
+@enduml

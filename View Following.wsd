@@ -1,0 +1,68 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Following Authors Page (UI)" as UI
+boundary Router
+control UserController
+control UserService
+control JwtService
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Open Following Authors
+activate User
+activate UI
+
+UI -> Router: 2. GET /following
+activate Router
+
+Router -> UserController: 3. getFollowingAuthors()
+activate UserController
+UserController -> UserService: 4. getFollowingAuthors(token)
+
+activate UserService
+UserService -> JwtService: 5. Verify access token
+activate JwtService
+JwtService --> UserService: 6. Decoded user_id
+deactivate JwtService
+
+UserService -> UserModel: 7. Find user & populate following_authors
+activate UserModel
+UserModel -> MongoDB: 8. findById + populate
+activate MongoDB
+MongoDB --> UserModel: 9. User document
+deactivate MongoDB
+UserModel --> UserService: 10. User data
+deactivate UserModel
+
+opt User not found
+    UserService --> UserController: 10.1. Throw error: User does not exist
+    UserController --> Router: 10.2. HTTP error response
+    Router --> UI: 10.3. Render error message
+    UI --> User: 10.4. Show error
+end
+
+UserService --> UserController: 11. Return following authors list
+deactivate UserService
+
+UserController --> Router: 12. HTTP response
+deactivate UserController
+Router --> UI: 13. Render following authors
+deactivate Router
+UI --> User: 14. Show list
+deactivate UI
+deactivate User
+@enduml

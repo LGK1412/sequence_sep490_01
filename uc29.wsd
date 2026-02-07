@@ -1,0 +1,59 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Story Detail Page" as UI
+boundary Router
+control ChapterController as CC
+control ChapterService as CS
+database MongoDB
+
+User -> UI: 1. Open Story Detail Page
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/chapter/history/{userId}/{storyId}
+activate Router
+
+Router -> CC: 3. getLastReadChapterFromHistory(userId, storyId)
+activate CC
+
+CC -> CS: 4. getLastReadChapterFromHistory(userId, storyId)
+activate CS
+
+CS -> MongoDB: 5. Find last read chapter from history
+activate MongoDB
+MongoDB --> CS: 6. lastChapter / null
+deactivate MongoDB
+
+alt 7. No history
+  CS --> CC: 7.1 null/empty
+  CC --> Router: 7.2 HTTP 200
+  Router --> UI: 7.3 Hide "Continue reading"
+else 8. Has last chapter
+  CS --> CC: 8.1 last chapter info
+  CC --> Router: 8.2 HTTP 200
+  Router --> UI: 8.3 Show "Continue reading"
+end
+
+deactivate CS
+deactivate CC
+deactivate Router
+
+User -> UI: 9. Click "Continue reading"
+UI -> Router: 10. Navigate to /chapter/{chapterId}
+
+deactivate UI
+deactivate User
+@enduml

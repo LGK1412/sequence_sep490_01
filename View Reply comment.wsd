@@ -1,0 +1,57 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "View Replies UI" as UI
+boundary Router
+control ReplyController
+control ReplyService
+entity ReplyModel
+database MongoDB
+
+User -> UI: 1. Open comment replies
+activate User
+activate UI
+
+UI -> Router: 2. GET /reply/{commentId}
+activate Router
+
+Router -> ReplyController: 3. getALlRepliesOfCommentChapter(id, req)
+activate ReplyController
+
+ReplyController -> ReplyService: 4. getRepliesForCommentChapter(commentId, payload)
+activate ReplyService
+
+ReplyService -> ReplyModel: 5. aggregate(match comment_id, is_delete=false)
+activate ReplyModel
+ReplyModel -> MongoDB: 6. aggregate pipeline
+activate MongoDB
+
+MongoDB --> ReplyModel: 7. replies + users + votes
+deactivate MongoDB
+ReplyModel --> ReplyService: 8. aggregated replies
+deactivate ReplyModel
+
+ReplyService --> ReplyController: 9. replies list
+deactivate ReplyService
+
+ReplyController --> Router: 10. HTTP response (replies)
+deactivate ReplyController
+Router --> UI: 11. Show replies
+deactivate Router
+UI --> User: 12. View replies with votes
+deactivate UI
+deactivate User
+@enduml

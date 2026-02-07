@@ -1,0 +1,104 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Login Page" as UI
+boundary Router
+control AuthController
+control AuthService
+control UserService
+entity UserModel
+boundary HashUtil
+boundary JwtService
+database MongoDB
+
+User -> UI: 1. Enter email & password\nClick Login
+activate User
+activate UI
+
+UI -> Router: 2. POST /api/auth/login (loginDto)
+activate Router
+
+Router -> AuthController: 3. login(loginDto)
+activate AuthController
+
+AuthController -> AuthService: 4. login(loginDto)
+activate AuthService
+
+AuthService -> UserService: 5. findByEmail(email)
+activate UserService
+UserService -> UserModel: 6. findOne({ email })
+activate UserModel
+UserModel -> MongoDB: 7. findOne({ email })
+activate MongoDB
+MongoDB --> UserModel: 8. User / null
+deactivate MongoDB
+UserModel --> UserService: 9. User / null
+deactivate UserModel
+UserService --> AuthService: 10. Result
+deactivate UserService
+
+alt User not found
+    AuthService --> AuthController: 10.1.1. Throw BadRequestException\n(Invalid email or password)
+    AuthController --> Router: 10.1.2. HTTP 400 response
+    Router --> UI: 10.1.3. Show error
+    UI --> User: 10.1.4. Invalid credentials
+else Account not verified
+    AuthService --> AuthController: 10.2.1. Throw BadRequestException\n(This account has not been verified yet)
+    AuthController --> Router: 10.2.2. HTTP 400 response
+    Router --> UI: 10.2.3. Show verification required
+    UI --> User: 10.2.4. Please verify your email
+else Account banned
+    AuthService --> AuthController: 10.3.1. Throw BadRequestException\n(This account has been banned)
+    AuthController --> Router: 10.3.2. HTTP 400 response
+    Router --> UI: 10.3.3. Show banned message
+    UI --> User: 10.3.4. Account banned
+else Google account detected
+    AuthService --> AuthController: 10.4.1. Throw BadRequestException\n(Please use Google login instead)
+    AuthController --> Router: 10.4.2. HTTP 400 response
+    Router --> UI: 10.4.3. Show Google login notice
+    UI --> User: 10.4.4. Use Google login
+end
+
+AuthService -> HashUtil: 13. Compare password
+activate HashUtil
+HashUtil --> AuthService: 14. Result
+deactivate HashUtil
+
+opt Password mismatch
+    AuthService --> AuthController: 14.1. Throw BadRequestException\n(Invalid email or password)
+    AuthController --> Router: 14.2. HTTP 400 response
+    Router --> UI: 14.3. Show error
+    UI --> User: 14.4. Invalid credentials
+end
+
+AuthService -> JwtService: 15. Generate JWT access token
+activate JwtService
+JwtService --> AuthService: 16. Result
+deactivate JwtService
+
+AuthService --> AuthController: 16. Return accessToken & tokenPayload
+deactivate AuthService
+
+AuthController --> Router: 17. Set-Cookie (access_token) + HTTP 200 body
+deactivate AuthController
+
+Router --> UI: 18. Login success response
+deactivate Router
+
+UI --> User: 19. Redirect to home page
+deactivate UI
+deactivate User
+@enduml

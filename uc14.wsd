@@ -1,0 +1,56 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Achievements Page" as FE
+control AchievementController as AC
+control AchievementService as AS
+database MongoDB
+
+User -> FE: 1. Click "Claim Reward"
+activate User
+activate FE
+
+FE -> AC: 2. POST /api/achievements/{id}/claim
+activate AC
+AC -> AC: 3. Guard check (AccessToken + Roles)
+
+AC -> AS: 4. claimReward(userId, achievementId)
+activate AS
+
+AS -> AS: 5. Validate ids + checkUser(userId)
+
+alt 6. Invalid id / not found / inactive / not completed / claimed
+  AS --> AC: 6.1 400/404 error
+  AC --> FE: 6.2 Show error
+else 7. OK
+  AS -> MongoDB: 7.1 find achievement + find progress
+  activate MongoDB
+  MongoDB --> AS: 7.2 data ok
+  deactivate MongoDB
+
+  AS -> MongoDB: 7.3 inc user points + set rewardClaimed=true
+  activate MongoDB
+  MongoDB --> AS: 7.4 updated
+  deactivate MongoDB
+
+  AS --> AC: 8. success + reward
+  AC --> FE: 9. Show success & refresh list
+end
+
+deactivate AS
+deactivate AC
+deactivate FE
+deactivate User
+@enduml

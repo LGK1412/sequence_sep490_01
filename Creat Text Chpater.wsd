@@ -1,0 +1,71 @@
+@startuml
+skinparam {
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Author
+boundary "Create Chapter UI" as UI
+boundary Router
+control ChapterController
+control ChapterService
+entity ChapterModel
+entity TextChapterModel
+entity MangaModel
+database MongoDB
+control EventEmitter
+
+Author -> UI: 1. Submit Create Chapter
+UI -> Router: 2. POST /chapters
+Router -> ChapterController: 3. create(dto)
+
+opt Token / Role Invalid
+  ChapterController --> Router: 3.1 401 / 403
+  Router --> UI: 3.2 Error
+end
+
+ChapterController -> ChapterService: 4. createChapterWithText(dto)
+
+ChapterService -> ChapterModel: 5. findOne(manga_id, order)
+ChapterModel -> MongoDB: 6. query
+MongoDB --> ChapterModel: 7. result
+ChapterModel --> ChapterService: 8. existing?
+
+alt Chapter order exists
+  ChapterService --> ChapterController: 8.1 BadRequest
+  ChapterController --> Router: 8.2 Error
+  Router --> UI: 8.3 Show error
+end
+
+ChapterService -> ChapterModel: 9. create Chapter
+ChapterModel -> MongoDB: 10. insert chapter
+MongoDB --> ChapterModel: 11. chapter
+ChapterModel --> ChapterService: 12. chapter
+
+ChapterService -> TextChapterModel: 13. create TextChapter
+TextChapterModel -> MongoDB: 14. insert text
+MongoDB --> TextChapterModel: 15. text
+TextChapterModel --> ChapterService: 16. text
+
+ChapterService -> MangaModel: 17. findById(manga_id)
+MangaModel -> MongoDB: 18. query
+MongoDB --> MangaModel: 19. manga(authorId)
+MangaModel --> ChapterService: 20. manga
+
+opt Emit achievements
+  ChapterService -> EventEmitter: 21. emit chapter_create_count
+  alt isPublished == true
+    ChapterService -> EventEmitter: 22. emit chapter_published
+  end
+end
+
+ChapterService -> EventEmitter: 23. emit chapter.content_changed
+
+ChapterService --> ChapterController: 24. {chapter, text}
+ChapterController --> Router: 25. 201 Created
+Router --> UI: 26. Show success
+UI --> Author: 27. Chapter created
+@enduml

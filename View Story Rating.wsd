@@ -1,0 +1,82 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Manga Rating Section (UI)" as UI
+boundary Router
+control RatingController
+control RatingService
+entity RatingModel
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Open manga reviews
+activate User
+activate UI
+
+UI -> Router: 2. GET /rating/all?mangaId
+activate Router
+
+Router -> RatingController: 3. all(mangaId)
+activate RatingController
+
+RatingController -> RatingController: 4. Validate mangaId
+activate RatingController
+
+alt Invalid mangaId
+    RatingController --> Router: 4.1. 400 Bad Request
+    deactivate RatingController
+    Router --> UI: 4.2. HTTP response
+    UI --> User: 4.3. Show error message
+else Invalid mangaId type
+    RatingController --> Router: 4.4. 400 Bad Request
+    Router --> UI: 4.5. HTTP response
+    UI --> User: 4.6. Show error message
+end
+
+RatingController -> RatingService: 5. listAllByManga(mangaId)
+
+activate RatingService
+RatingService -> RatingModel: 6. Find ratings by mangaId
+activate RatingModel
+
+RatingModel -> MongoDB: 7. find({ mangaId })
+activate MongoDB
+MongoDB --> RatingModel: 8. Rating documents
+deactivate MongoDB
+
+RatingModel -> UserModel: 9. Populate userId (username, avatar)
+activate UserModel
+UserModel -> MongoDB: 10. Find users by userId
+activate MongoDB
+MongoDB --> UserModel: 11. User documents
+deactivate MongoDB
+UserModel --> RatingModel: 12. User data
+deactivate UserModel
+
+RatingModel --> RatingService: 13. Ratings list
+deactivate RatingModel
+
+RatingService --> RatingController: 14. Return list
+deactivate RatingService
+
+RatingController --> Router: 15. HTTP response
+deactivate RatingController
+Router --> UI: 16. Render ratings list
+deactivate Router
+UI --> User: 17. Show reviews
+deactivate UI
+deactivate User
+@enduml

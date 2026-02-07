@@ -1,0 +1,30 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+control ChapterService
+entity ChapterModel
+database MongoDB
+
+ChapterService -> ChapterModel: 1. create Chapter
+activate ChapterService
+activate ChapterModel
+ChapterModel -> MongoDB: 2. insert chapter
+activate MongoDB
+MongoDB --> ChapterModel: 3. saved chapter
+deactivate MongoDB
+ChapterModel --> ChapterService: 4. chapter
+deactivate ChapterModel
+deactivate ChapterService
+@enduml

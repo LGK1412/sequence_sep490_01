@@ -1,0 +1,55 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "View Chapter UI" as UI
+boundary Router
+control TextChapterController
+control TextChapterService
+entity TextChapterModel
+database MongoDB
+
+User -> UI: 1. Open chapter detail
+activate User
+activate UI
+
+UI -> Router: 2. GET /chapter/id/{id}
+activate Router
+
+Router -> TextChapterController: 3. getChapterById(id)
+activate TextChapterController
+
+TextChapterController -> TextChapterService: 4. getChapterById(ObjectId)
+activate TextChapterService
+
+TextChapterService -> TextChapterModel: 5. Aggregate(match + lookup + project)
+activate TextChapterModel
+TextChapterModel -> MongoDB: 6. Aggregate pipeline
+activate MongoDB
+MongoDB --> TextChapterModel: 7. Aggregated result
+deactivate MongoDB
+TextChapterModel --> TextChapterService: 8. Chapter detail
+deactivate TextChapterModel
+
+TextChapterService --> TextChapterController: 9. Chapter detail
+deactivate TextChapterService
+TextChapterController --> Router: 10. 200 OK
+deactivate TextChapterController
+Router --> UI: 11. Render chapter + text
+deactivate Router
+UI --> User: 12. View chapter content
+deactivate UI
+deactivate User
+@enduml
