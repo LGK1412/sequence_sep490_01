@@ -12,12 +12,13 @@ skinparam {
   DatabaseBorderColor black
 }
 
-actor "System" as System
+control "Other Service" as System
 control NotificationService as NotiService
 database MongoDB
 control "Firebase Admin" as Firebase
 
 System -> NotiService: 1. createNotification(noti)
+activate System
 activate NotiService
 
 NotiService -> MongoDB: 2. insert notification (noti.save)
@@ -31,5 +32,6 @@ Firebase --> NotiService: 5. successCount/failureCount
 deactivate Firebase
 
 NotiService --> System: 6. return send result
+deactivate System
 deactivate NotiService
 @enduml

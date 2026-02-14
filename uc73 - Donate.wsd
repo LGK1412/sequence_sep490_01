@@ -1,0 +1,108 @@
+@startuml
+
+skinparam participantBackgroundColor white
+skinparam actorBackgroundColor white
+skinparam controlBackgroundColor white
+skinparam boundaryBackgroundColor white
+skinparam entityBackgroundColor white
+skinparam databaseBackgroundColor white
+
+actor User
+boundary "Donation Modal" as UI
+boundary Router
+control "DonationController" as Controller
+entity "DonationService" as Service
+entity "DonationItemModel" as ItemModel
+entity "UserModel" as UserModel
+entity "DonationModel" as DonationModel
+entity "EventEmitter" as Event
+database MongoDB
+
+User -> UI : 1. Click Donate
+activate User
+activate UI
+UI -> Router : 2. GET /api/donation/items
+activate Router
+Router -> Controller : 3. getAllDonationItems(onlyAvailable?, rarity?)
+activate Controller
+Controller -> Service : 4. getAllDonationItems() method
+activate Service
+Service -> ItemModel : 5. find(filter)
+activate ItemModel
+ItemModel -> MongoDB : 6. Execute query
+activate MongoDB
+MongoDB --> ItemModel : 7. items
+deactivate MongoDB
+ItemModel --> Service : 8. items
+deactivate ItemModel
+Service --> Controller : 9. items
+deactivate Service
+Controller --> Router : 10. HTTP response
+deactivate Controller
+Router --> UI : 11. Display items list
+deactivate Router
+
+User -> UI : 12. Choose item + quantity + message
+UI -> Router : 13. POST /api/donation/send
+activate Router
+Router -> Controller : 14. sendGift (req, body {receivedId,\n itemId, quantity, message?})
+activate Controller
+Controller -> Controller : 15. validate body + get senderId(JWT)
+activate Controller
+Controller -> Service : 16. Call donate(senderId, receiverId,\n itemId, qty) method
+deactivate Controller
+activate Service
+Service -> ItemModel : 17. findById(itemId)
+activate ItemModel
+ItemModel -> MongoDB : 18. Execute query
+activate MongoDB
+MongoDB --> ItemModel : 19. item
+deactivate MongoDB
+deactivate ItemModel
+
+Service -> UserModel : 20. find(sender)
+activate UserModel
+UserModel -> MongoDB : 21. Execute query
+activate MongoDB
+MongoDB --> UserModel : 22. user 
+deactivate MongoDB
+deactivate UserModel
+
+Service -> UserModel : 23. find(receiver)
+activate UserModel
+UserModel -> MongoDB : 24. Execute query
+activate MongoDB
+MongoDB --> UserModel : 25. user
+deactivate MongoDB
+UserModel --> Service : 26. data
+deactivate UserModel
+
+alt insufficient points
+  Service --> Controller : 26.1. ForbiddenException
+  Controller --> Router : 26.2. HTTP response (403 error)
+  Router --> UI : 26.3. Show error
+  UI --> User: 26.4. Show "You don't have\n enough point" message
+else success
+  Service -> UserModel : 27. sender.point -= totalPrice\nsave()
+  activate UserModel
+  Service -> UserModel : 28. receiver.author_point += earned\nsave()
+  deactivate UserModel
+  Service -> DonationModel : 29. Call create(donation) method
+  activate DonationModel
+  DonationModel -> MongoDB : 30. Execute query
+  activate MongoDB
+  MongoDB --> DonationModel : 31. document
+  deactivate MongoDB
+  DonationModel --> Service: 32. document
+  deactivate DonationModel
+  Service --> Controller : 33. Success response
+  deactivate Service
+  Controller --> Router : 34. HTTP response
+  deactivate Controller
+  Router --> UI : 35. Success message
+  deactivate Router
+  UI -> User : 36. Show "Donation success"
+  deactivate UI
+  deactivate User
+end
+@enduml

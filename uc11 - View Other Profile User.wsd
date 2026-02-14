@@ -17,6 +17,7 @@ boundary "Public Profile Page" as UI
 boundary Router
 control UserController
 control UserService
+entity UserModel
 database MongoDB
 
 User -> UI: 1. Click other user's profile
@@ -31,30 +32,37 @@ activate UserController
 UserController -> UserService: 4. getPublicUserById(id)
 activate UserService
 
-UserService -> UserService: 5. Validate ObjectId
-
-alt 6. Invalid id
-  UserService --> UserController: 6.1 NotFoundException\n(User does not exist)
-else 7. OK
-  UserService -> MongoDB: 7.1 findById().select(username,avatar,bio,role)
-  activate MongoDB
-  MongoDB --> UserService: 7.2 user / null
-  deactivate MongoDB
-
-  alt 8. User is null
-    UserService --> UserController: 8.1 NotFoundException\n(User does not exist)
-  else 9. Found
-    UserService --> UserController: 9.1 Return public profile
-  end
+opt Invalid id
+  UserService --> UserController: 4.1. NotFoundException
+  UserController --> Router: 4.2. HTTP response
+  Router --> UI: 4.3. HTTP response
+  UI --> User: 4.4. Show error
 end
 
+UserService -> UserModel: 5. findById().select(username,avatar,bio,role)
+activate UserModel
+UserModel -> MongoDB: 6. get user by id
+activate MongoDB
+MongoDB --> UserModel: 7. return user
+deactivate MongoDB
+UserModel --> UserService: 8. return user
+deactivate UserModel
+
+opt User is null
+  UserService --> UserController: 8.1. NotFoundException
+  UserController --> Router: 8.2. HTTP response
+  Router --> UI: 8.3. HTTP response
+  UI --> User: 8.4. Show error
+end
+
+UserService --> UserController: 9. Return public profile
 deactivate UserService
 UserController --> Router: 10. HTTP response
 deactivate UserController
 
 Router --> UI: 11. Render profile / show error
 deactivate Router
-
+UI --> User: 12. Show profile
 deactivate UI
 deactivate User
 @enduml

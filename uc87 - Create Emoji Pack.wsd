@@ -1,0 +1,69 @@
+@startuml
+skinparam shadowing false
+skinparam entityBackgroundColor white
+skinparam actorBackgroundColor white
+skinparam boundaryBackgroundColor white
+skinparam controlBackgroundColor white
+skinparam databaseBackgroundColor white
+
+actor Admin
+boundary "Emoji Page" as UI
+boundary Router
+control "EmojiPackController" as Controller
+entity "EmojiService" as EmojiService
+entity "File Storage" as FS
+entity "EmojiModel" as EmojiModel
+entity "EmojiPackService" as PackService
+entity "EmojiPackModel" as PackModel
+database MongoDB
+
+Admin -> UI : 1. Click "Create" button
+activate Admin
+activate UI
+UI -> Router : 2. POST /emoji-pack/create-emoji-pack
+activate Router
+Router -> Controller : 3. createEmojiPack(files, body, req)
+activate Controller
+Controller -> EmojiService : 4. uploadEmojis(files)
+activate EmojiService
+
+loop each file
+    EmojiService -> FS : 4.1. Write files
+    activate FS
+    FS --> EmojiService : 4.2. success
+    deactivate FS
+
+    EmojiService -> EmojiModel : 4.3. Save emoji
+    activate EmojiModel
+    EmojiModel -> MongoDB: 4.4. Execute query
+    activate MongoDB
+    MongoDB --> EmojiModel: 4.5. document
+    deactivate MongoDB
+    EmojiModel --> EmojiService: 4.6. document
+    deactivate EmojiModel
+end
+
+EmojiService --> Controller : 5. emojiIds
+deactivate EmojiService
+
+Controller -> PackService : 6. createEmojiPack(emojiIds)
+activate PackService
+PackService -> PackModel : 7. Save pack
+activate PackModel
+PackModel -> MongoDB: 8. Execute query
+activate MongoDB
+MongoDB --> PackModel: 9. document
+deactivate MongoDB
+
+PackModel --> PackService: 10. document
+deactivate PackModel
+PackService --> Controller: 11. success & pack
+deactivate PackService
+Controller --> Router : 12. HTTP response
+deactivate Controller
+Router --> UI : 13. success message
+deactivate Router
+UI --> Admin : 14. Show "Create successfully" message
+deactivate UI
+deactivate Admin
+@enduml

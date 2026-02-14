@@ -17,6 +17,7 @@ boundary "Profile Page" as UI
 boundary Router
 control AuthController
 control AuthService
+entity UserModel
 database MongoDB
 
 User -> UI: 1. Click Avatar
@@ -26,37 +27,41 @@ activate UI
 UI -> Router: 2. GET /api/auth/me (cookie)
 activate Router
 
-loop 4. Invalid token / expired token / Invalid role
-  Router --> UI: 4.2 Show error
-  UI --> User: 4.3 Cannot load profile
+loop Invalid token / expired token / Invalid role
+  Router --> UI: 2.1. Show error
+  UI --> User: 2.2. Cannot load profile
 end 
 
-Router -> AuthController: 9. getMe(req)
+Router -> AuthController: 3. getMe(req)
 activate AuthController
-AuthController -> AuthService: 10. getMe(req)
+AuthController -> AuthService: 4. getMe(req)
 activate AuthService
 
-AuthService -> MongoDB: 11. findById(req.user.user_id)
+AuthService -> UserModel: 5. findById(req.user.user_id)
+activate UserModel
+UserModel --> MongoDB: 6. user / null
 activate MongoDB
-MongoDB --> AuthService: 12. user / null
+MongoDB --> UserModel: 7. user / null
 deactivate MongoDB
+UserModel --> AuthService: 8. user / null
+deactivate UserModel
 
-alt User not found
-  AuthService --> AuthController: 12.1. UnauthorizedException
-  AuthController --> Router: 12.2. HTTP response
-  Router --> UI: 12.3. Show error
-  UI --> User: 12.4. Cannot load profile
+opt User not found
+  AuthService --> AuthController: 8.1. UnauthorizedException
+  AuthController --> Router: 8.2. HTTP response
+  Router --> UI: 8.3. Show error
+  UI --> User: 8.4. Cannot load profile
 end
   
-AuthService --> AuthController: 14.1 Profile data
+AuthService --> AuthController: 9. Profile data
 
 deactivate AuthService
 
-AuthController --> Router: 15. HTTP response
+AuthController --> Router: 10. HTTP response
 deactivate AuthController
-Router --> UI: 16. Render profile / show error
+Router --> UI: 11. Render profile / show error
 deactivate Router
-UI --> User: 17. Show profile
+UI --> User: 12. Show profile
 deactivate UI
 deactivate User
 @enduml

@@ -1,0 +1,57 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Manga List Page" as UI
+boundary Router
+control MangaController
+control MangaService
+entity MangaModel
+database MongoDB
+
+User -> UI: 1. Open manga list
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/manga/get/all?page&limit
+activate Router
+
+Router -> MangaController: 3. getAll(page, limit)
+activate MangaController
+
+MangaController -> MangaService: 4. getAllManga(page, limit)
+activate MangaService
+
+MangaService -> MangaModel: 5. aggregate(pipeline)
+activate MangaModel
+MangaModel -> MongoDB: 6. Get list story
+activate MongoDB
+MongoDB --> MangaModel: 7. aggregation result
+deactivate MongoDB
+MangaModel --> MangaService: 8. { data, total }
+deactivate MangaModel
+
+MangaService --> MangaController: 9. return data & total
+deactivate MangaService
+
+MangaController --> Router: 10. HTTP response
+deactivate MangaController
+
+Router --> UI: 11. Response data
+deactivate Router
+
+UI --> User: 12. Show manga list
+deactivate UI
+deactivate User
+@enduml

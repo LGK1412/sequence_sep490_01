@@ -1,0 +1,67 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Reading History" as UI
+boundary Router
+control ChapterController
+control ChapterService
+entity HistoryModel
+entity ChapterModel
+database MongoDB
+
+User -> UI: 1. Request last read chapter
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/chapter/history/{userId}/{storyId}
+activate Router
+
+Router -> ChapterController: 3. getLastReadChapterFromHistory()
+activate ChapterController
+
+ChapterController -> ChapterService: 4. getLastReadChapterFromHistory(userId, storyId)
+activate ChapterService
+
+ChapterService -> HistoryModel: 5. findOne(user_id, story_id)
+activate HistoryModel
+HistoryModel -> MongoDB: 6. query history
+activate MongoDB
+MongoDB --> HistoryModel: 7. history doc
+deactivate MongoDB
+
+HistoryModel -> ChapterModel: 8. populate(last_read_chapter)
+activate ChapterModel
+ChapterModel -> MongoDB: 9. query chapter
+activate MongoDB
+MongoDB --> ChapterModel: 10. chapter data
+deactivate MongoDB
+ChapterModel --> HistoryModel: 11. populated chapter
+deactivate ChapterModel
+
+HistoryModel --> ChapterService: 12. return history + last_read_chapter
+deactivate HistoryModel
+
+ChapterService --> ChapterController: 13. return result
+deactivate ChapterService
+
+ChapterController --> Router: 14. HTTP response
+deactivate ChapterController
+
+Router --> UI: 15. Response data
+deactivate Router
+UI --> User: 16. Show last read chapter
+deactivate UI
+deactivate User
+@enduml

@@ -1,0 +1,62 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Notification Page" as UI
+boundary Router
+control NotificationController
+control NotificationService
+entity NotificationModel
+database MongoDB
+
+User -> UI: 1. Open My Notifications
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/notification/me
+activate Router
+
+Router -> NotificationController: 3. getMyNotifications()
+activate NotificationController
+
+opt Missing userId in token
+  NotificationController --> Router: 3.1. BadRequestException
+  Router --> UI: 3.2. HTTP error
+  UI --> User: 3.3. Show error
+end
+
+NotificationController -> NotificationService: 4. getAllNotiForUser(userId, payload)
+activate NotificationService
+
+NotificationService -> NotificationModel: 5. find(receiver_id = userId)
+activate NotificationModel
+NotificationModel -> MongoDB: 6. query notifications
+activate MongoDB
+MongoDB --> NotificationModel: 7. notification list
+deactivate MongoDB
+NotificationModel --> NotificationService: 8. return notifications
+deactivate NotificationModel
+
+NotificationService --> NotificationController: 9. return notifications
+deactivate NotificationService
+
+NotificationController --> Router: 10. HTTP response
+deactivate NotificationController
+
+Router --> UI: 11. Response data
+deactivate Router
+UI --> User: 12. Show notifications
+deactivate UI
+deactivate User
+@enduml

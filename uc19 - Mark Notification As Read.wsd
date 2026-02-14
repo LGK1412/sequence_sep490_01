@@ -1,0 +1,80 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Notification Page" as UI
+boundary Router
+control NotificationController
+control NotificationService
+entity NotificationModel
+database MongoDB
+
+User -> UI: 1. Click "Mark as read"
+activate User
+activate UI
+
+UI -> Router: 2. PATCH /api/notification/mark-noti-as-read/{id}
+activate Router
+
+Router -> NotificationController: 3. markNotiAsRead(id)
+activate NotificationController
+
+NotificationController -> NotificationService: 4. markAsRead(id, payload)
+activate NotificationService
+
+opt Invalid user
+  NotificationService --> NotificationController: 4.1. BadRequestException
+  NotificationController --> Router: 4.2. HTTP error
+  Router --> UI: 4.3. Show error
+  UI --> User: 4.4. Show error
+end
+
+NotificationService -> NotificationModel: 5. findOne(_id, receiver_id)
+activate NotificationModel
+NotificationModel -> MongoDB: 6. query notification
+activate MongoDB
+MongoDB --> NotificationModel: 7. notification data
+deactivate MongoDB
+NotificationModel --> NotificationService: 8. return notification
+deactivate NotificationModel
+
+opt Notification not found
+  NotificationService --> NotificationController: 8.1. NotFoundException
+  NotificationController --> Router: 8.2. HTTP error
+  Router --> UI: 8.3. Show error
+  UI --> User: 8.4. Show error
+end
+
+NotificationService -> NotificationModel: 9. set is_read=true, expireAt=+14 days
+activate NotificationModel
+NotificationModel -> MongoDB: 10. save notification
+activate MongoDB
+MongoDB --> NotificationModel: 11. saved
+deactivate MongoDB
+
+NotificationModel --> NotificationService: 12. return updated notification
+deactivate NotificationModel
+
+NotificationService --> NotificationController: 13. success result
+deactivate NotificationService
+
+NotificationController --> Router: 14. HTTP response
+deactivate NotificationController
+
+Router --> UI: 15. Response data
+deactivate Router
+UI --> User: 16. Update notification state
+deactivate UI
+deactivate User
+@enduml

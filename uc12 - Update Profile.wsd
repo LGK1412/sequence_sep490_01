@@ -1,0 +1,92 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary "Profile Page" as UI
+boundary Router
+control UserController
+control UserService
+entity UserModel
+database MongoDB
+entity FileSystem
+
+User -> UI: 1. Submit update profile form
+activate User
+activate UI
+
+UI -> Router: 2. PATCH /api/user/profile (multipart/form-data)
+activate Router
+
+Router -> UserController: 3. updateProfile(body, avatar)
+activate UserController
+
+loop Invalid file type / size
+  UserController --> Router: 3.1. BadRequestException
+  Router --> UI: 3.2. HTTP error
+  UI --> User: 3.3. Show error
+end
+
+UserController -> UserService: 4. updateProfile(userPayload, updateData)
+activate UserService
+
+opt Invalid user payload
+  UserService --> UserController: 4.1. BadRequestException
+  UserController --> Router: 4.2. HTTP error
+  Router --> UI: 4.3. HTTP error
+  UI --> User: 4.4. Show error
+end
+
+UserService -> UserModel: 5. findOne(username != userId)
+activate UserModel
+UserModel -> MongoDB: 6. query
+activate MongoDB
+MongoDB --> UserModel: 7. existing user
+deactivate MongoDB
+UserModel --> UserService: 8. result
+deactivate UserModel
+
+opt Username already exists
+  UserService --> UserController: 8.1. BadRequestException
+  UserController --> Router: 8.2. HTTP error
+  Router --> UI: 8.3. HTTP error
+  UI --> User: 8.4. Show error
+end
+
+UserService -> UserModel: 9. findByIdAndUpdate()
+activate UserModel
+UserModel -> MongoDB: 10. update user
+activate MongoDB
+MongoDB --> UserModel: 11. updated user
+deactivate MongoDB
+UserModel --> UserService: 12. return user
+deactivate UserModel
+
+UserService --> UserController: 13. success result
+deactivate UserService
+
+opt Avatar uploaded & update success
+  UserController -> FileSystem: 13.1. write avatar file
+  activate FileSystem
+  FileSystem --> UserController: 13.2. file saved
+  deactivate FileSystem 
+end
+
+UserController --> Router: 14. HTTP success response
+deactivate UserController
+Router --> UI: 15. Response data
+deactivate Router
+UI --> User: 16. Show updated profile
+deactivate UI
+deactivate User
+@enduml

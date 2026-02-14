@@ -26,18 +26,19 @@ activate Theme
 
 Theme -> Storage: 3. Persist theme
 activate Storage
-alt 4. Storage unavailable
-  Storage --> Theme: 4.1 Fail
-  Theme --> Navbar: 4.2 Apply for session
-else 5. Saved
-  Storage --> Theme: 5.1 OK
-end
+
+opt 4. Storage unavailable
+  Storage --> Theme: 3.1. Fail
+  Theme --> Navbar: 3.2. Apply for session
+end  
+
+Storage --> Theme: 4. OK
 deactivate Storage
 
-Theme --> Navbar: 6. Trigger re-render with new theme
+Theme --> Navbar: 5. Trigger re-render with new theme
 deactivate Theme
 
-Navbar --> User: 7. See updated theme
+Navbar --> User: 6. See updated theme
 deactivate Navbar
 deactivate User
 @enduml
