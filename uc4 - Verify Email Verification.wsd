@@ -36,21 +36,11 @@ AuthController -> AuthService: 4. verificationEmail(token)
 
 activate AuthService
 
-alt Missing token
-    AuthService --> AuthController: 4.1.1. Throw BadRequestException\n(Missing verification token)
+loop Missing token / Invalid or expired token / Invalid token payload
+    AuthService --> AuthController: 4.1.1. Throw BadRequestException
     AuthController --> Router: 4.1.2. HTTP 400 response
     Router --> UI: 4.1.3. Show error
     UI --> User: 4.1.4. Missing verification token
-else Invalid or expired token
-    AuthService --> AuthController: 4.2.1. Throw BadRequestException\n(Invalid or expired token)
-    AuthController --> Router: 4.2.2. HTTP 400 response
-    Router --> UI: 4.2.3. Show error
-    UI --> User: 4.2.4. Invalid or expired token
-else Invalid token payload
-    AuthService --> AuthController: 4.3.1. Throw BadRequestException\n(Invalid token)
-    AuthController --> Router: 4.3.2. HTTP 400 response
-    Router --> UI: 4.3.3. Show error
-    UI --> User: 4.3.4. Invalid token
 end
 
 AuthService -> UserService: 5. findByEmail(email)
@@ -66,21 +56,11 @@ deactivate UserModel
 UserService --> AuthService: 10. Result
 deactivate UserService
 
-alt User not found or banned
-    AuthService --> AuthController: 10.1.1. Throw BadRequestException\n(User does not exist or has been banned)
+loop User not found or banned / User already verified / Code mismatch
+    AuthService --> AuthController: 10.1.1. Throw BadRequestException
     AuthController --> Router: 10.1.2. HTTP 400 response
     Router --> UI: 10.1.3. Show error
     UI --> User: 10.1.4. User invalid
-else User already verified
-    AuthService --> AuthController: 10.2.1. Throw BadRequestException\n(User has already been verified)
-    AuthController --> Router: 10.2.2. HTTP 400 response
-    Router --> UI: 10.2.3. Show message
-    UI --> User: 10.2.4. Already verified
-else Code mismatch
-    AuthService --> AuthController: 10.3.1. Throw BadRequestException\n(Invalid code)
-    AuthController --> Router: 10.3.2. HTTP 400 response
-    Router --> UI: 10.3.3. Show error
-    UI --> User: 10.3.4. Request new verification email
 end
 
 AuthService -> UserService: 11. Update verified status

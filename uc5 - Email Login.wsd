@@ -50,26 +50,11 @@ deactivate UserModel
 UserService --> AuthService: 10. Result
 deactivate UserService
 
-alt User not found
-    AuthService --> AuthController: 10.1.1. Throw BadRequestException\n(Invalid email or password)
+loop User not found / Account not verified / Account banned / Google account detected
+    AuthService --> AuthController: 10.1.1. Throw BadRequestException
     AuthController --> Router: 10.1.2. HTTP 400 response
     Router --> UI: 10.1.3. Show error
     UI --> User: 10.1.4. Invalid credentials
-else Account not verified
-    AuthService --> AuthController: 10.2.1. Throw BadRequestException\n(This account has not been verified yet)
-    AuthController --> Router: 10.2.2. HTTP 400 response
-    Router --> UI: 10.2.3. Show verification required
-    UI --> User: 10.2.4. Please verify your email
-else Account banned
-    AuthService --> AuthController: 10.3.1. Throw BadRequestException\n(This account has been banned)
-    AuthController --> Router: 10.3.2. HTTP 400 response
-    Router --> UI: 10.3.3. Show banned message
-    UI --> User: 10.3.4. Account banned
-else Google account detected
-    AuthService --> AuthController: 10.4.1. Throw BadRequestException\n(Please use Google login instead)
-    AuthController --> Router: 10.4.2. HTTP 400 response
-    Router --> UI: 10.4.3. Show Google login notice
-    UI --> User: 10.4.4. Use Google login
 end
 
 AuthService -> HashUtil: 13. Compare password
