@@ -1,0 +1,45 @@
+@startuml
+skinparam shadowing false
+skinparam entityBackgroundColor white
+skinparam actorBackgroundColor white
+skinparam boundaryBackgroundColor white
+skinparam controlBackgroundColor white
+skinparam databaseBackgroundColor white
+
+actor "User/Author" as A
+boundary "Check-in Modal" as UI
+boundary Router
+control "CheckinController" as Controller
+entity "CheckinService" as Service
+entity "CheckinModel" as CheckinModel
+database MongoDB
+
+A -> UI : 1. View in Check-in Modal
+activate A
+activate UI
+UI -> Router : 2. GET /api/checkin/status
+activate Router
+Router -> Controller : 3. getStatus(req)
+activate Controller
+Controller -> Service : 4. getCheckinStatus(userId)
+activate Service
+
+Service -> CheckinModel : 5. findOneAndUpdate(upsert record)
+activate CheckinModel
+CheckinModel -> MongoDB : 6. Execute query
+activate MongoDB
+MongoDB --> CheckinModel : 7. document
+deactivate MongoDB
+CheckinModel --> Service : 8. record
+deactivate CheckinModel
+
+Service --> Controller : 9. status (weekStart, checkins, canCheckin)
+deactivate Service
+Controller --> Router : 10. HTTP response (200 OK)
+deactivate Controller
+Router --> UI : 11. weekly checkin status
+deactivate Router
+UI --> A : 12. Mark / unmark for each day of weeek
+deactivate UI
+deactivate A
+@enduml

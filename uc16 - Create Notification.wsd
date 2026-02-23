@@ -12,26 +12,41 @@ skinparam {
   DatabaseBorderColor black
 }
 
+actor User
 control "Other Service" as System
 control NotificationService as NotiService
 database MongoDB
 control "Firebase Admin" as Firebase
 
-System -> NotiService: 1. createNotification(noti)
+User -> System: 1. sendNotification(notification)
+activate User
 activate System
+System -> NotiService: 2. createNotification(noti)
 activate NotiService
 
-NotiService -> MongoDB: 2. insert notification (noti.save)
+NotiService -> MongoDB: 3. insert notification (noti.save)
 activate MongoDB
-MongoDB --> NotiService: 3. saved
+MongoDB --> NotiService: 4. saved
 deactivate MongoDB
 
-NotiService -> Firebase: 4. sendEachForMulticast(tokens,title,body)
-activate Firebase
-Firebase --> NotiService: 5. successCount/failureCount
-deactivate Firebase
+NotiService -> NotiService: 5. Get device id
+activate NotiService
+opt No tokens
+  NotiService --> System: 5.1 {successTokens:[], failedTokens:[]}
+  deactivate NotiService
+  System --> User: 5.2 return empty result
+end
 
-NotiService --> System: 6. return send result
-deactivate System
+NotiService -> Firebase: 6. sendEachForMulticast(tokens,title,body)
+activate Firebase
+Firebase --> NotiService: 7. successCount/failureCount + per-token results
+deactivate Firebase
+NotiService -> NotiService: 8. Build successTokens/failedTokens
+activate NotiService
+NotiService --> System: 9.1 Return delivery result
 deactivate NotiService
+deactivate NotiService
+System --> User: 9.2 return send result
+deactivate System
+deactivate User
 @enduml

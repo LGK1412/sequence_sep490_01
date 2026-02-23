@@ -1,0 +1,69 @@
+@startuml
+skinparam shadowing false
+skinparam entityBackgroundColor white
+skinparam actorBackgroundColor white
+skinparam boundaryBackgroundColor white
+skinparam controlBackgroundColor white
+skinparam databaseBackgroundColor white
+
+actor "User/Author" as A
+boundary "Check-in Modal" as UI
+boundary Router
+control "CheckinController" as Controller
+entity "CheckinService" as Service
+entity "CheckinModel" as CheckinModel
+entity "UserModel" as UserModel
+database MongoDB
+
+A -> UI : 1. Click "Check-in" button
+activate A
+activate UI
+UI -> Router : 2. POST /api/checkin/today
+activate Router
+Router -> Controller : 3. checkinToday(req)
+activate Controller
+Controller -> Service : 4. checkinToday(userId, role)
+activate Service
+
+Service -> CheckinModel : 5. findOneAndUpdate(upsert record)
+activate CheckinModel
+CheckinModel -> MongoDB : 6. Execute query
+activate MongoDB
+MongoDB --> CheckinModel : 7. document
+deactivate MongoDB
+CheckinModel --> Service : 8. record
+deactivate CheckinModel
+
+alt already checked
+    Service --> Controller : 8.1 BadRequestException
+    Controller --> Router : 8.2. HTTP response (400 error)
+    Router --> UI : 8.3. error message
+    UI --> A : 8.4. Display "Already checked\n in today!" message
+else not checked
+    Service -> UserModel : 9. Find user
+    activate UserModel
+    UserModel -> MongoDB : 10. Execute query
+    activate MongoDB
+    MongoDB --> UserModel : 11. document
+    deactivate MongoDB
+    UserModel --> Service : 12. user
+    deactivate UserModel
+    Service -> CheckinModel : 13. Save record
+    activate CheckinModel
+    CheckinModel --> Service : 14. success
+    deactivate CheckinModel
+    Service -> UserModel : 15. updated points
+    activate UserModel
+    UserModel --> Service: 16. success
+    deactivate UserModel
+    Service --> Controller : 17. success
+    deactivate Service
+    Controller --> Router : 18. HTTP response (200 OK)
+    deactivate Controller
+    Router --> UI : 19. success message
+    deactivate Router
+    UI --> A : 20. Disable "Check-in" button &\n Mark and claim reward
+    deactivate UI
+    deactivate A
+end
+@enduml
