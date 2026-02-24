@@ -1,0 +1,38 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+title Subsequence - Find user for email login
+
+control AuthService
+control UserService
+entity UserModel
+database MongoDB
+
+AuthService -> UserService: 5. findByEmail(email)
+activate UserService
+activate AuthService
+UserService -> UserModel: 6. findOne({ email })
+activate UserModel
+UserModel -> MongoDB: 7. findOne({ email })
+activate MongoDB
+MongoDB --> UserModel: 8. User / null
+deactivate MongoDB
+UserModel --> UserService: 9. User / null
+deactivate UserModel
+UserService --> AuthService: 10. Result
+deactivate UserService
+deactivate AuthService
+
+@enduml

@@ -34,9 +34,9 @@ activate UserController
 UserController -> UserService: 4. toggleFollowAuthor(token, authorId)
 
 activate UserService
-UserService -> JwtService: 5. Verify access token
+UserService -> JwtService: 5. Verify token
 activate JwtService
-JwtService --> UserService: 6. Decoded user_id
+JwtService --> UserService: 6. Decoded 
 deactivate JwtService
 
 opt Decoide failed
@@ -46,7 +46,7 @@ opt Decoide failed
     UI --> User: 6.4. Show error
 end
 
-UserService -> UserModel: 7. Find user by decoded.user_id
+UserService -> UserModel: 7. Find user 
 activate UserModel
 UserModel -> MongoDB: 8. Get user
 activate MongoDB
@@ -63,26 +63,17 @@ opt User not found
 end
 
 ref over UserService, MongoDB
-11. Following Author - Subsequences
+    11. Subsequence - Following Author
 end ref
 
-UserService -> UserModel: 12. Save updated following_authors
-activate UserModel
-UserModel -> MongoDB: 13. Save user
-activate MongoDB
-MongoDB --> UserModel: 14. Saved
-deactivate MongoDB
-UserModel --> UserService: 15. Save result
-deactivate UserModel
-
-UserService --> UserController: 16. Return following & isFollowing
+UserService --> UserController: 12. Return following & isFollowing
 deactivate UserService
 
-UserController --> Router: 17. HTTP response
+UserController --> Router: 13. HTTP response
 deactivate UserController
-Router --> UI: 18. Update follow button
+Router --> UI: 14. Update follow button
 deactivate Router
-UI --> User: 19. Show follow state
+UI --> User: 15. Show follow state
 deactivate UI
 deactivate User
 @enduml

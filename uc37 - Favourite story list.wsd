@@ -41,31 +41,31 @@ opt No token
     UI --> User: 4.4. Show error
 end
 
-UserService -> JwtService: 5. Verify access token
+UserService -> JwtService: 5. Verify token
 activate JwtService
-JwtService --> UserService: 6. Decoded user information
+JwtService --> UserService: 6. Decoded
 deactivate JwtService
 
 opt Invalid token
-    UserService --> UserController: 6.1. Throw error: User does not exist
-    UserController --> Router: 6.2. HTTP error response
-    Router --> UI: 6.3. HTTP error response
+    UserService --> UserController: 6.1. Return 400 Bad Request
+    UserController --> Router: 6.2. Return 400 Bad Request
+    Router --> UI: 6.3. Return 400 Bad Request
     UI --> User: 6.4. Show error
 end
 
-UserService -> UserModel: 7. Find user & populate favourites + styles
+UserService -> UserModel: 7. Find user
 activate UserModel
-UserModel -> MongoDB: 8. findById + populate favourites.styles
+UserModel -> MongoDB: 8. Find user
 activate MongoDB
-MongoDB --> UserModel: 9. User with favourites
+MongoDB --> UserModel: 9. Reuturn user
 deactivate MongoDB
 UserModel --> UserService: 10. User data
 deactivate UserModel
 
 opt User not found
-    UserService --> UserController: 10.1. Throw error: User does not exist
-    UserController --> Router: 10.2. HTTP error response
-    Router --> UI: 10.3. HTTP error response
+    UserService --> UserController: 10.1. Return 400 Bad Request
+    UserController --> Router: 10.2. Return 400 Bad Request
+    Router --> UI: 10.3. Return 400 Bad Request
     UI --> User: 10.4. Show error
 end
 

@@ -18,7 +18,6 @@ boundary "Manga Rating Form (UI)" as UI
 boundary Router
 control RatingController
 control RatingService
-control EventEmitter
 entity RatingModel
 database MongoDB
 
@@ -32,55 +31,38 @@ activate Router
 Router -> RatingController: 3. upsert()
 activate RatingController
 
-alt mangaId missing
-    RatingController --> Router: 3.1.1. HTTP response (400 Bad Request)
-    Router --> UI: 3.1.2. Show error message
-    UI --> User: 3.1.3. Error displayed
-else Invalid mangaId
-    RatingController --> Router: 3.2.1. HTTP response (400 Bad Request)
-    Router --> UI: 3.2.2. Show error message
-    UI --> User: 3.2.3. Error displayed
-else Rating missing
-    RatingController --> Router: 3.3.1. HTTP response (400 Bad Request)
-    Router --> UI: 3.3.2. Show error message
-    UI --> User: 3.3.3. Error displayed
-else Comment missing
-    RatingController --> Router: 3.4.1. HTTP response (400 Bad Request)
-    Router --> UI: 3.4.2. Show error message
-    UI --> User: 3.4.3. Error displayed
-
+loop mangaId missing / Invalid mangaId / Rating missing / Comment missing
+    RatingController --> Router: 3.1.1. Return 400 Bad Request
+    Router --> UI: 3.1.2. Return 400 Bad Request
+    UI --> User: 3.1.3. Show error message
 end
 
-RatingController -> RatingService: 4. upsertRating(userId, mangaId, rating, comment)
+RatingController -> RatingService: 4. Call upsertRating
 
 activate RatingService
 opt Rating out of range
     RatingService --> RatingController: 4.1. Error (Rating out of range)
-    RatingController --> Router: 4.2. HTTP response (400 Bad Request)
-    Router --> UI: 4.3. Show error message
-    UI --> User: 4.4. Error displayed
+    RatingController --> Router: 4.2. Return 400 Bad Request
+    Router --> UI: 4.3. Return 400 Bad Request
+    UI --> User: 4.4. Show error message
 end
 
-RatingService -> RatingModel: 5. findOneAndUpdate(userId, mangaId)
+RatingService -> RatingModel: 5. Update rating
 activate RatingModel
 RatingModel -> MongoDB: 6. Upsert rating document
 activate MongoDB
-MongoDB --> RatingModel: 7. Rating document
+MongoDB --> RatingModel: 7. Return rating document
 deactivate MongoDB
 RatingModel --> RatingService: 8. Rating result
 deactivate RatingModel
-
-RatingService -> EventEmitter: 9. Emit rating_count
-activate EventEmitter
-deactivate EventEmitter
-RatingService --> RatingController: 10. Return rating document
+RatingService --> RatingController: 9. Return rating document
 deactivate RatingService
 
-RatingController --> Router: 11. HTTP response (success)
+RatingController --> Router: 10. HTTP response (success)
 deactivate RatingController
-Router --> UI: 12. Show rating result
+Router --> UI: 11. Show rating result
 deactivate Router
-UI --> User: 13. Rating saved
+UI --> User: 12. Rating saved
 deactivate UI
 deactivate User
 @enduml

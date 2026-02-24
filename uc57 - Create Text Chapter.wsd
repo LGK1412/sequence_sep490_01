@@ -56,7 +56,7 @@ deactivate MongoDB
 TextChapterModel --> TextChapterService: 8. result
 deactivate TextChapterModel
 
-alt Chapter order exists
+opt Chapter order exists
     TextChapterService --> TextChapterController: 8.1. BadRequestException
     TextChapterController --> Router: 8.2. Error response
     Router --> UI: 8.3. Show error
@@ -90,26 +90,14 @@ deactivate MongoDB
 MangaModel --> TextChapterService: 20. Return achievement
 deactivate MangaModel
 
-opt Manga has authorId
-    TextChapterService -> EventEmitter: 21.1. emit chapter_create_count
-    activate EventEmitter
-
-        opt isPublished = true
-            TextChapterService -> EventEmitter: 21.1.1. emit chapter_published
-        end
-end
-
-TextChapterService -> EventEmitter: 22. emit chapter.content_changed
-deactivate EventEmitter
-
-TextChapterService --> TextChapterController: 23. {chapter, text}
+TextChapterService --> TextChapterController: 21. {chapter, text}
 deactivate TextChapterService
 
-TextChapterController --> Router: 24. HTTP 201 Created
+TextChapterController --> Router: 22. HTTP 201 Created
 deactivate TextChapterController
-Router --> UI: 25. Create success
+Router --> UI: 23. Create success
 deactivate Router
-UI --> Author: 26. See new chapter
+UI --> Author: 24. See new chapter
 deactivate UI
 deactivate Author
 @enduml

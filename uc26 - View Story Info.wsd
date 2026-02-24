@@ -59,47 +59,19 @@ opt Manga not found
   UI --> User: 8.4. Show error
 end
 
-MangaService -> ChapterModel: 9. find published chapters
-activate ChapterModel
-ChapterModel -> MongoDB: 10. query chapters
-activate MongoDB
-MongoDB --> ChapterModel: 11. chapter list
-deactivate MongoDB
-ChapterModel --> MangaService: 12. return chapters
-deactivate ChapterModel
+ref over MangaService, ChapterModel, ChapterPurchaseModel, RatingModel, MongoDB
+  9. Subsequence - View Story Info
+end ref
 
-opt User logged in
-  MangaService -> ChapterPurchaseModel: 12.1. find purchased chapters
-  activate ChapterPurchaseModel
-  ChapterPurchaseModel -> MongoDB: 12.2. query purchases
-  activate MongoDB
-  MongoDB --> ChapterPurchaseModel: 12.3. purchased chapters
-  deactivate MongoDB
-  ChapterPurchaseModel --> MangaService: 12.4. return purchases
-  deactivate ChapterPurchaseModel
-end
-
-MangaService -> MangaService: 13. map chapters (locked / purchased)
-activate MangaService
-MangaService -> RatingModel: 14. aggregate rating summary
-deactivate MangaService
-activate RatingModel
-RatingModel -> MongoDB: 15. aggregate ratings
-activate MongoDB
-MongoDB --> RatingModel: 16. rating summary
-deactivate MongoDB
-RatingModel --> MangaService: 17. return summary
-deactivate RatingModel
-
-MangaService --> MangaController: 18. return manga detail
+MangaService --> MangaController: 10. return manga detail
 deactivate MangaService
 
-MangaController --> Router: 19. HTTP response
+MangaController --> Router: 11. HTTP response
 deactivate MangaController
 
-Router --> UI: 20. Response data
+Router --> UI: 12. Response data
 deactivate Router
-UI --> User: 21. Show manga detail
+UI --> User: 13. Show manga detail
 deactivate UI
 deactivate User
 @enduml

@@ -44,7 +44,7 @@ deactivate MongoDB
 ReplyModel --> ReplyService: 8. result
 deactivate ReplyModel
 
-alt Reply not found
+opt Reply not found
     ReplyService --> ReplyController: 8.1 Throw BadRequestException
     ReplyController --> Router: 8.2 HTTP 400
     Router --> UI: 8.3 Error response

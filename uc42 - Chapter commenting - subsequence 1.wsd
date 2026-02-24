@@ -1,0 +1,84 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+title Subsequence - Chapter commenting 1
+
+actor User
+boundary "Chapter Comment Form (UI)" as UI
+boundary Router
+control CommentController
+control CommentService
+control UserService
+entity CommentModel
+entity UserModel
+database MongoDB
+
+CommentService -> UserService: 1. find user
+activate CommentService
+activate UserService
+UserService -> UserModel: 2. findById(userId)
+activate UserModel
+UserModel -> MongoDB: 3. Find user
+activate MongoDB
+MongoDB --> UserModel: 4. return user data
+deactivate MongoDB
+UserModel --> UserService: 5. return user data
+deactivate UserModel
+UserService --> CommentService: 6. return user data
+deactivate UserService
+
+loop User Not Found / User is banned
+    CommentService --> CommentController: 6.1. Throw error
+    activate CommentController
+    CommentController --> Router: 6.2. 401 Unauthorized
+    activate Router
+    Router --> UI: 6.3. Show error
+    activate UI
+    UI --> User: 6.4. Show error
+    activate User
+end
+
+CommentService -> CommentService: 7. Validate chapter_id
+activate CommentService
+opt Invalid chapter_id
+    CommentService --> CommentController: 7.1. Throw error
+    deactivate CommentService
+    CommentController --> Router: 7.2. 400 Bad Request
+    Router --> UI: 7.3. Show error
+    UI --> User: 7.4. Show error
+end
+
+CommentService -> CommentModel: 8. Create new comment
+activate CommentModel
+CommentModel -> MongoDB: 9. save comment
+activate MongoDB
+MongoDB --> CommentModel: 10. Saved comment
+deactivate MongoDB
+CommentModel --> CommentService: 11. savedComment
+deactivate CommentModel
+
+opt Failed to save comment
+    CommentService --> CommentController: 11.1. Throw error
+    deactivate CommentService
+    CommentController --> Router: 11.2. 500 Internal Server Error
+    deactivate CommentController
+    Router --> UI: 11.3. Show error
+    deactivate Router
+    UI --> User: 11.4. Show error
+    deactivate UI
+    deactivate User
+end
+
+@enduml

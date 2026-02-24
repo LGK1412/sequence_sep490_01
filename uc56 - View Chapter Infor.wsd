@@ -43,7 +43,7 @@ deactivate MongoDB
 ChapterModel --> ChapterService: 8. Return chapter
 deactivate ChapterModel
 
-alt Chapter not found
+opt Chapter not found
     ChapterService --> ChapterController: 8.1 null
     ChapterController --> Router: 8.2 404 Not Found
     Router --> UI: 8.3 Show error

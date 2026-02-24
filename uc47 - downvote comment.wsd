@@ -31,7 +31,7 @@ activate Router
 Router -> CommentController: 3. downVote(comment_id, req)
 activate CommentController
 
-opt Token / Role Invalid
+loop Token / Role Invalid
     CommentController --> Router: 3.1.1 401 / 403 Error
     Router --> UI: 3.1.2 Show error
     UI --> User: 3.1.3 Error message
@@ -43,71 +43,16 @@ activate CommentService
 CommentService -> CommentService: 5. checkUser(payload)
 activate CommentService
 
-alt User not exist
+alt User not exist / User is banned
     CommentService --> CommentController: 5.1 Error
     deactivate CommentService
     CommentController --> Router: 5.2 400 Error
     Router --> UI: 5.3 Show error
     UI --> User: 5.4 Error message
-else User is banned
-    CommentService --> CommentController: 5.5 Error
-    CommentController --> Router: 5.6 403 Error
-    Router --> UI: 5.7 Show error
-    UI --> User: 5.8 Error message
 end
 
-CommentService -> VoteCommentModel: 6. findOne(comment_id, user_id)
-activate VoteCommentModel
-VoteCommentModel -> MongoDB: 7. query vote
-activate MongoDB
-MongoDB --> VoteCommentModel: 8. existingVote / null
-deactivate MongoDB
-VoteCommentModel --> CommentService: 9. result
-deactivate VoteCommentModel
+ref over User, MongoDB
+    6. Subsequence - Vote comment 1
+end ref
 
-alt No existing vote
-    CommentService -> VoteCommentModel: 9.1.1 create new vote (is_up=false)
-    activate VoteCommentModel
-    VoteCommentModel -> MongoDB: 9.1.2 insert vote
-    activate MongoDB
-    MongoDB --> VoteCommentModel: 9.1.3 inserted document
-    deactivate MongoDB
-    VoteCommentModel --> CommentService: 9.1.4 created vote
-    deactivate VoteCommentModel
-    CommentService --> CommentController: 9.1.5 Downvoted
-    CommentController --> Router: 9.1.6 HTTP response
-    Router --> UI: 9.1.7 Update vote state
-    UI --> User: 9.1.8 See updated downvote
-else Existing vote is down
-    CommentService -> VoteCommentModel: 9.2.1 delete vote
-    activate VoteCommentModel
-    VoteCommentModel -> MongoDB: 9.2.2 delete document
-    activate MongoDB
-    MongoDB --> VoteCommentModel: 9.2.3 deletion confirmation
-    deactivate MongoDB
-    VoteCommentModel --> CommentService: 9.2.4 vote deleted
-    deactivate VoteCommentModel
-    CommentService --> CommentController: 9.2.5 Downvote removed
-    CommentController --> Router: 9.2.6 HTTP response
-    Router --> UI: 9.2.7 Update vote state
-    UI --> User: 9.2.8 See removed downvote
-else Existing vote is up
-    CommentService -> VoteCommentModel: 9.3.1 update is_up=false
-    activate VoteCommentModel
-    VoteCommentModel -> MongoDB: 9.3.2 update document
-    activate MongoDB
-    MongoDB --> VoteCommentModel: 9.3.3 updated document
-    deactivate MongoDB
-    VoteCommentModel --> CommentService: 9.3.4 vote updated
-    deactivate VoteCommentModel
-    CommentService --> CommentController: 9.3.5 Downvoted
-    deactivate CommentService
-    CommentController --> Router: 9.3.6 HTTP response
-    deactivate CommentController
-    Router --> UI: 9.3.7 Update vote state
-    deactivate Router
-    UI --> User: 9.3.8 See updated downvote
-    deactivate UI
-    deactivate User
-end
 @enduml

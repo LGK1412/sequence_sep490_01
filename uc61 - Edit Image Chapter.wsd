@@ -48,7 +48,7 @@ activate ImageChapterService
 ImageChapterService -> ImageChapterService: 5. Parse new_images_meta
 activate ImageChapterService
 
-alt Invalid new_images_meta
+opt Invalid new_images_meta
     ImageChapterService --> ImageChapterController: 5.1. BadRequestException
     deactivate ImageChapterService
     ImageChapterController --> Router: 5.2. Error response

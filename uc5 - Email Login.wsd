@@ -37,53 +37,44 @@ activate AuthController
 AuthController -> AuthService: 4. login(loginDto)
 activate AuthService
 
-AuthService -> UserService: 5. findByEmail(email)
-activate UserService
-UserService -> UserModel: 6. findOne({ email })
-activate UserModel
-UserModel -> MongoDB: 7. findOne({ email })
-activate MongoDB
-MongoDB --> UserModel: 8. User / null
-deactivate MongoDB
-UserModel --> UserService: 9. User / null
-deactivate UserModel
-UserService --> AuthService: 10. Result
-deactivate UserService
+ref over AuthService, UserService, UserModel, MongoDB
+    5. Subsequence - Find user for email login
+end ref
 
 loop User not found / Account not verified / Account banned / Google account detected
-    AuthService --> AuthController: 10.1.1. Throw BadRequestException
-    AuthController --> Router: 10.1.2. HTTP 400 response
-    Router --> UI: 10.1.3. Show error
-    UI --> User: 10.1.4. Invalid credentials
+    AuthService --> AuthController: 5.1. Throw BadRequestException
+    AuthController --> Router: 5.2. HTTP 400 response
+    Router --> UI: 5.3. Show error
+    UI --> User: 5.4. Invalid credentials
 end
 
-AuthService -> HashUtil: 13. Compare password
+AuthService -> HashUtil: 6. Compare password
 activate HashUtil
-HashUtil --> AuthService: 14. Result
+HashUtil --> AuthService: 7. Result
 deactivate HashUtil
 
 opt Password mismatch
-    AuthService --> AuthController: 14.1. Throw BadRequestException\n(Invalid email or password)
-    AuthController --> Router: 14.2. HTTP 400 response
-    Router --> UI: 14.3. Show error
-    UI --> User: 14.4. Invalid credentials
+    AuthService --> AuthController: 8.1. Throw BadRequestException
+    AuthController --> Router: 8.2. HTTP 400 response
+    Router --> UI: 8.3. Show error
+    UI --> User: 8.4. Invalid credentials
 end
 
-AuthService -> JwtService: 15. Generate JWT access token
+AuthService -> JwtService: 9. Generate JWT access token
 activate JwtService
-JwtService --> AuthService: 16. Result
+JwtService --> AuthService: 10. Result
 deactivate JwtService
 
-AuthService --> AuthController: 16. Return accessToken & tokenPayload
+AuthService --> AuthController: 11. Return token & payload
 deactivate AuthService
 
-AuthController --> Router: 17. Set-Cookie (access_token) + HTTP 200 body
+AuthController --> Router: 12. Set-Cookie
 deactivate AuthController
 
-Router --> UI: 18. Login success response
+Router --> UI: 13. Login success 
 deactivate Router
 
-UI --> User: 19. Redirect to home page
+UI --> User: 14. Redirect to home page
 deactivate UI
 deactivate User
 @enduml

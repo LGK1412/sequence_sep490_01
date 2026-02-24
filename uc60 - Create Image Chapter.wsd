@@ -103,10 +103,6 @@ else ImageChapter not exist
     deactivate MongoDB
     MangaModel --> ImageChapterService: 16.3.4. manga
     deactivate MangaModel
-
-    ImageChapterService -> EventEmitter: 16.4.1. emit chapter_create_count
-    activate EventEmitter    
-    deactivate EventEmitter
 end
 
 ImageChapterService --> ImageChapterController: 17. {chapter, imageChapter}

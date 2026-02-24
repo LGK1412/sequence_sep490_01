@@ -18,7 +18,6 @@ boundary Router
 control ChapterController
 control ChapterService
 entity HistoryModel
-entity ChapterModel
 database MongoDB
 
 User -> UI: 1. Request last read chapter
@@ -28,40 +27,31 @@ activate UI
 UI -> Router: 2. GET /api/chapter/history/{userId}/{storyId}
 activate Router
 
-Router -> ChapterController: 3. getLastReadChapterFromHistory()
+Router -> ChapterController: 3. get last read chapter
 activate ChapterController
 
-ChapterController -> ChapterService: 4. getLastReadChapterFromHistory(userId, storyId)
+ChapterController -> ChapterService: 4. get last read chapter
 activate ChapterService
 
-ChapterService -> HistoryModel: 5. findOne(user_id, story_id)
+ChapterService -> HistoryModel: 5. get history
 activate HistoryModel
 HistoryModel -> MongoDB: 6. query history
 activate MongoDB
-MongoDB --> HistoryModel: 7. history doc
+MongoDB --> HistoryModel: 7. return history
 deactivate MongoDB
 
-HistoryModel -> ChapterModel: 8. populate(last_read_chapter)
-activate ChapterModel
-ChapterModel -> MongoDB: 9. query chapter
-activate MongoDB
-MongoDB --> ChapterModel: 10. chapter data
-deactivate MongoDB
-ChapterModel --> HistoryModel: 11. populated chapter
-deactivate ChapterModel
-
-HistoryModel --> ChapterService: 12. return history + last_read_chapter
+HistoryModel --> ChapterService: 8. return result
 deactivate HistoryModel
 
-ChapterService --> ChapterController: 13. return result
+ChapterService --> ChapterController: 9. return result
 deactivate ChapterService
 
-ChapterController --> Router: 14. HTTP response
+ChapterController --> Router: 10. HTTP response
 deactivate ChapterController
 
-Router --> UI: 15. Response data
+Router --> UI: 11. Response data
 deactivate Router
-UI --> User: 16. Show last read chapter
+UI --> User: 12. Show last read chapter
 deactivate UI
 deactivate User
 @enduml

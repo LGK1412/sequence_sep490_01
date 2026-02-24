@@ -47,51 +47,17 @@ activate ReplyService
 ReplyService -> ReplyService: 5. checkLegitUser(payload)
 activate ReplyService
 
-alt User not exist
+loop User not exist / User is banned
     ReplyService --> ReplyController: 5.1 Error
     deactivate ReplyService
     ReplyController --> Router: 5.2 400 Error
     Router --> UI: 5.3 Show error
     UI --> User: 5.4 Error message
-else User is banned
-    ReplyService --> ReplyController: 5.5 Error
-    ReplyController --> Router: 5.6 403 Error
-    Router --> UI: 5.7 Show error
-    UI --> User: 5.8 Error message
 end
 
-ReplyService -> ReplyModel: 6. save reply
-activate ReplyModel
-ReplyModel -> MongoDB: 7. insert reply
-activate MongoDB
-MongoDB --> ReplyModel: 8. savedReply
-deactivate MongoDB
-ReplyModel --> ReplyService: 9. savedReply
-deactivate ReplyModel
-
-opt Create Reply Failed
-    ReplyService --> ReplyController: 9.1. Error
-    ReplyController --> Router: 9.2. 500 Error
-    Router --> UI: 9.3 Show error
-    UI --> User: 9.4 Error message
-end
-
-ReplyService -> ChapterService: 10. getChapterById(chapter_id)
-activate ChapterService
-ChapterService --> ReplyService: 11. chapter
-deactivate ChapterService
-
-ReplyService -> MangaService: 12. get author
-activate MangaService
-MangaService --> ReplyService: 13. manga
-deactivate MangaService
-
-opt Invalid manga id
-    ReplyService --> ReplyController: 13.1. Error
-    ReplyController --> Router: 13.2. 400 Error
-    Router --> UI: 13.3 Show error
-    UI --> User: 13.4 Error message
-end
+ref over ReplyService, ReplyModel, MongoDB
+    6. Subsequence - Reply comment 1
+end ref
 
 ReplyService -> UserService: 14. getUserById(receiver_id)
 activate UserService

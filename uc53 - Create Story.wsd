@@ -100,10 +100,6 @@ deactivate MongoDB
 MangaModel --> MangaService: 8. manga
 deactivate MangaModel
 
-MangaService -> EventEmitter: 9. emit story_create_count
-activate EventEmitter
-deactivate EventEmitter
-
 MangaService --> MangaController: 10. created manga
 deactivate MangaService
 

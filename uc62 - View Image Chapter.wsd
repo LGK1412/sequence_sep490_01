@@ -28,7 +28,7 @@ activate UI
 UI -> Router: 2. GET /chapter/id/{chapterId}
 activate Router
 
-alt Invalid chapterId
+opt Invalid chapterId
     Router --> UI: 2.1 BadRequestException
     UI --> User: 2.2 Show error
 end

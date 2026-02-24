@@ -52,35 +52,19 @@ else Email already exists
     UI --> User: 5.2.4. Email already exists
 end
 
-AuthService -> HashUtils: 6. Hash password
-activate HashUtils
-HashUtils --> AuthService: 7. Hashed password
-deactivate HashUtils
+ref over AuthService, UserService, UserModel, MongoDB
+    6. Subsequence - Hash password and create user
+end ref
 
-AuthService -> UserService: 8. Create new user
-
-activate UserService
-UserService -> UserModel: 9. insert user
-activate UserModel
-UserModel -> MongoDB: 10. Insert user data
-activate MongoDB
-MongoDB --> UserModel: 11. New user data
-deactivate MongoDB
-UserModel --> UserService: 12. New user created
-deactivate UserModel
-
-UserService --> AuthService: 13. User entity
-deactivate UserService
-
-AuthService --> AuthController: 14. Return { success: true }
+AuthService --> AuthController: 7. Return { success: true }
 deactivate AuthService
 
-AuthController --> Router: 15. HTTP 200 response
+AuthController --> Router: 8. HTTP 200 response
 deactivate AuthController
 
-Router --> UI: 16. Registration success
+Router --> UI: 9. Registration success
 deactivate Router
-UI --> User: 17. Show success message
+UI --> User: 10. Show success message
 deactivate UI
 deactivate User
 @enduml

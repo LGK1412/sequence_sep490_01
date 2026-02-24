@@ -28,26 +28,26 @@ activate UI
 UI -> Router: 2. GET /reply/{commentId}
 activate Router
 
-Router -> ReplyController: 3. getALlRepliesOfCommentChapter(id, req)
+Router -> ReplyController: 3. Call get replies
 activate ReplyController
 
-ReplyController -> ReplyService: 4. getRepliesForCommentChapter(commentId, payload)
+ReplyController -> ReplyService: 4. Call get replies
 activate ReplyService
 
-ReplyService -> ReplyModel: 5. aggregate(match comment_id, is_delete=false)
+ReplyService -> ReplyModel: 5. Get replies
 activate ReplyModel
-ReplyModel -> MongoDB: 6. aggregate pipeline
+ReplyModel -> MongoDB: 6. Get replies
 activate MongoDB
 
-MongoDB --> ReplyModel: 7. replies + users + votes
+MongoDB --> ReplyModel: 7. Return replies
 deactivate MongoDB
-ReplyModel --> ReplyService: 8. aggregated replies
+ReplyModel --> ReplyService: 8. Return replies
 deactivate ReplyModel
 
-ReplyService --> ReplyController: 9. replies list
+ReplyService --> ReplyController: 9. Return replies
 deactivate ReplyService
 
-ReplyController --> Router: 10. HTTP response (replies)
+ReplyController --> Router: 10. Return replies
 deactivate ReplyController
 Router --> UI: 11. Show replies
 deactivate Router

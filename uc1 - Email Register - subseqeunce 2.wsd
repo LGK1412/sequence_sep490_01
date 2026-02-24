@@ -1,0 +1,45 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+title Subsequence - Hash password and create user
+
+control AuthService
+boundary HashUtils
+control UserService
+entity UserModel
+database MongoDB
+
+AuthService -> HashUtils: 1. Hash password
+activate AuthService
+activate HashUtils
+HashUtils --> AuthService: 2. Hashed password
+deactivate HashUtils
+
+AuthService -> UserService: 3. Create new user
+
+activate UserService
+UserService -> UserModel: 4. insert user
+activate UserModel
+UserModel -> MongoDB: 5. Insert user data
+activate MongoDB
+MongoDB --> UserModel: 6. New user data
+deactivate MongoDB
+UserModel --> UserService: 7. New user created
+deactivate UserModel
+
+UserService --> AuthService: 8. User entity
+deactivate UserService
+deactivate AuthService
+
+@enduml

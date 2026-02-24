@@ -19,7 +19,6 @@ boundary Router
 control RatingController
 control RatingService
 entity RatingModel
-entity UserModel
 database MongoDB
 
 User -> UI: 1. Open manga reviews
@@ -35,48 +34,35 @@ activate RatingController
 RatingController -> RatingController: 4. Validate mangaId
 activate RatingController
 
-alt Invalid mangaId
+loop Invalid mangaId / Invalid mangaId type
     RatingController --> Router: 4.1. 400 Bad Request
     deactivate RatingController
     Router --> UI: 4.2. HTTP response
     UI --> User: 4.3. Show error message
-else Invalid mangaId type
-    RatingController --> Router: 4.4. 400 Bad Request
-    Router --> UI: 4.5. HTTP response
-    UI --> User: 4.6. Show error message
 end
 
 RatingController -> RatingService: 5. listAllByManga(mangaId)
 
 activate RatingService
-RatingService -> RatingModel: 6. Find ratings by mangaId
+RatingService -> RatingModel: 6. Find ratings
 activate RatingModel
 
-RatingModel -> MongoDB: 7. find({ mangaId })
+RatingModel -> MongoDB: 7. Find ratings
 activate MongoDB
-MongoDB --> RatingModel: 8. Rating documents
+MongoDB --> RatingModel: 8. Return ratings
 deactivate MongoDB
 
-RatingModel -> UserModel: 9. Populate userId (username, avatar)
-activate UserModel
-UserModel -> MongoDB: 10. Find users by userId
-activate MongoDB
-MongoDB --> UserModel: 11. User documents
-deactivate MongoDB
-UserModel --> RatingModel: 12. User data
-deactivate UserModel
-
-RatingModel --> RatingService: 13. Ratings list
+RatingModel --> RatingService: 9. Ratings list
 deactivate RatingModel
 
-RatingService --> RatingController: 14. Return list
+RatingService --> RatingController: 10. Return list
 deactivate RatingService
 
-RatingController --> Router: 15. HTTP response
+RatingController --> Router: 11. HTTP response
 deactivate RatingController
-Router --> UI: 16. Render ratings list
+Router --> UI: 12. Render ratings list
 deactivate Router
-UI --> User: 17. Show reviews
+UI --> User: 13. Show reviews
 deactivate UI
 deactivate User
 @enduml

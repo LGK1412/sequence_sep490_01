@@ -1,0 +1,42 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+title Subsequence - Chapter commenting 2
+
+control CommentService
+control MangaService
+control UserService
+database MongoDB
+
+CommentService -> MangaService: 1. Get manga
+activate MangaService
+activate CommentService
+MangaService -> MongoDB: 2. Find manga
+activate MongoDB
+MongoDB --> MangaService: 3. Manga data
+deactivate MongoDB
+MangaService --> CommentService: 4. Manga
+deactivate MangaService
+
+CommentService -> UserService: 5. Get author
+activate UserService
+UserService -> MongoDB: 6. Find author
+activate MongoDB
+MongoDB --> UserService: 7. return author
+deactivate MongoDB
+UserService --> CommentService: 8. Return author
+deactivate UserService
+deactivate CommentService
+@enduml

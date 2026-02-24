@@ -37,7 +37,7 @@ loop Invalid file type / size
   UI --> User: 3.3. Show error
 end
 
-UserController -> UserService: 4. updateProfile(userPayload, updateData)
+UserController -> UserService: 4. update profile
 activate UserService
 
 opt Invalid user payload
@@ -47,7 +47,7 @@ opt Invalid user payload
   UI --> User: 4.4. Show error
 end
 
-UserService -> UserModel: 5. findOne(username != userId)
+UserService -> UserModel: 5. find user
 activate UserModel
 UserModel -> MongoDB: 6. query
 activate MongoDB

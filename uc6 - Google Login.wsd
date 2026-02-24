@@ -60,48 +60,21 @@ else Email missing or not verified
     UI --> User: 8.2.4 Google email not verified
 end
 
-AuthService -> UserService: 9. findByEmail(email)
-activate UserService
-UserService -> UserModel: 10. findOne({ email })
-activate UserModel
-UserModel -> MongoDB: 11. Get user data
-activate MongoDB
-MongoDB --> UserModel: 11. User / null
-deactivate MongoDB
-UserModel --> UserService: 12. User / null
-deactivate UserModel
-UserService --> AuthService: 12. Result
-deactivate UserService
+ref over AuthService, UserService, UserModel, MongoDB
+    9. Subsequence - Find user for Google Login
+end ref
 
-opt User not found
-    AuthService -> UserService: 12.1.1 createUserGoogle()
-    activate UserService
-    UserService -> UserModel: 12.1.2 insert new user (verified = true)
-    activate UserModel
-    UserModel -> MongoDB: 12.1.3 Insert user data
-    activate MongoDB
-    MongoDB --> UserModel: 12.1.4 New user created
-    deactivate MongoDB
-    UserModel --> UserService: 12.1.5 New user
-    deactivate UserModel
-    UserService --> AuthService: 12.1.6 New user
-    deactivate UserService
-else User already exists
-    AuthService -> AuthService: 12.2.1 Use existing user
-    activate AuthService
-end
-
-AuthService --> AuthController: 14. Return accessToken & tokenPayload
+AuthService --> AuthController: 10. Return accessToken & tokenPayload
 deactivate AuthService
 deactivate AuthService
 
-AuthController -> Router: 15. Set HTTP-only cookie (access_token)
+AuthController -> Router: 11. Set HTTP-only cookie (access_token)
 deactivate AuthController
 
-Router --> UI: 16. Login success response
+Router --> UI: 12. Login success response
 deactivate Router
 
-UI --> User: 17. Redirect to home page
+UI --> User: 13. Redirect to home page
 deactivate UI
 deactivate User
 @enduml

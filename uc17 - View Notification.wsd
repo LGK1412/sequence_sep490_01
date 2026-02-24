@@ -36,12 +36,12 @@ opt Missing userId in token
   UI --> User: 3.3. Show error
 end
 
-NotificationController -> NotificationService: 4. getAllNotiForUser(userId, payload)
+NotificationController -> NotificationService: 4. get notifications
 activate NotificationService
 
-NotificationService -> NotificationModel: 5. find(receiver_id = userId)
+NotificationService -> NotificationModel: 5. find notifications
 activate NotificationModel
-NotificationModel -> MongoDB: 6. query notifications
+NotificationModel -> MongoDB: 6. get notifications
 activate MongoDB
 MongoDB --> NotificationModel: 7. notification list
 deactivate MongoDB

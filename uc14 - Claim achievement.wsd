@@ -29,16 +29,17 @@ activate UI
 UI -> Router: 2. POST /api/achievement/{id}/claim
 activate Router
 
-Router -> AchievementController: 3. claimReward(user, achievementId)
+Router -> AchievementController: 3. call claim reward
 activate AchievementController
 
-AchievementController -> AchievementService: 4. claimReward(userId, achievementId)
+AchievementController -> AchievementService: 4. call claim reward
 activate AchievementService
 
 loop Invalid userId / achievementId
   AchievementService --> AchievementController: 4.1. BadRequestException
   AchievementController --> Router: 4.2. HTTP error
   Router --> UI: 4.3. Show error
+  Ui --> User: 4.4. Show error
 end
 
 AchievementService -> AchievementModel: 5. findById(achievementId)
@@ -54,6 +55,7 @@ loop Achievement not found / inactive
   AchievementService --> AchievementController: 8.1. NotFound / BadRequest
   AchievementController --> Router: 8.2. HTTP error
   Router --> UI: 8.3. Show error
+  UI --> User: 8.4. Show error
 end
 
 AchievementService -> AchievementProgressModel: 9. findOne(userId, achievementId)
@@ -69,6 +71,7 @@ loop Progress not found / not completed / reward claimed
   AchievementService --> AchievementController: 12.1. BadRequest / NotFound
   AchievementController --> Router: 12.2. HTTP error
   Router --> UI: 12.3. Show error
+  UI --> User: 12.4. Show error
 end
 
 AchievementService -> UserModel: 13. findByIdAndUpdate(+point, +author_point)
