@@ -1,0 +1,69 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Policy Edit UI" as UI
+boundary Router
+control PoliciesController
+control AccessTokenGuard
+control RolesGuard
+control PoliciesService
+entity PoliciesModel
+database MongoDB
+
+Admin -> UI: 1. Open policy page
+activate Admin
+activate UI
+
+
+UI -> Router: 2. GET /policies/{id}
+activate Router
+
+Router -> PoliciesController: 3. findById(id)
+activate PoliciesController
+
+PoliciesController -> PoliciesService: 4. findById(id)
+activate PoliciesService
+
+PoliciesService -> PoliciesModel: 5. findById(id)
+activate PoliciesModel
+
+PoliciesModel -> MongoDB: 6. query by _id
+activate MongoDB
+MongoDB --> PoliciesModel: 7. policy
+deactivate MongoDB
+
+PoliciesModel --> PoliciesService: 8. policy
+deactivate PoliciesModel
+
+opt Not found
+  PoliciesService --> PoliciesController: 8.1. Throw NotFoundException
+  PoliciesController --> Router: 8.2. HTTP 404
+  Router --> UI: 8.3. Load failed
+  UI --> Admin: 8.4. Show error message
+end
+
+PoliciesService --> PoliciesController: 9. policy
+deactivate PoliciesService
+
+PoliciesController --> Router: 10. HTTP 200 response
+deactivate PoliciesController
+
+Router --> UI: 11. Return policy
+deactivate Router
+UI --> Admin: 12. Display policy data
+deactivate UI
+deactivate Admin
+
+@enduml

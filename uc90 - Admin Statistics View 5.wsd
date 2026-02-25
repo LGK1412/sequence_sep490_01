@@ -1,0 +1,101 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Dashboard UI" as UI
+boundary Router
+control UserController
+control AccessTokenGuard
+control RolesGuard
+control UserService
+entity UserModel
+database MongoDB
+
+Admin -> UI: 1. Load Dashboard (Users Statistics)
+activate Admin
+activate UI
+
+UI -> Router: 2. GET /user/admin/summary
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> Admin: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> Admin: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> UserController: 7. getUsersSummary()
+activate UserController
+
+UserController -> UserService: 8. getUsersSummary()
+activate UserService
+
+UserService -> UserModel: 9. estimatedDocumentCount()
+activate UserModel
+UserModel -> MongoDB: 10. count all users
+activate MongoDB
+MongoDB --> UserModel: 11. total
+deactivate MongoDB
+UserModel --> UserService: 12. total
+deactivate UserModel
+
+UserService -> UserModel: 13. count this month
+activate UserModel
+UserModel -> MongoDB: 14. countDocuments(createdAt in this month)
+activate MongoDB
+MongoDB --> UserModel: 15. thisMonth
+deactivate MongoDB
+UserModel --> UserService: 16. thisMonth
+deactivate UserModel
+
+UserService -> UserModel: 17. count last month
+activate UserModel
+UserModel -> MongoDB: 18. countDocuments(createdAt in last month)
+activate MongoDB
+MongoDB --> UserModel: 19. lastMonth
+deactivate MongoDB
+UserModel --> UserService: 20. lastMonth
+deactivate UserModel
+
+UserService --> UserController: 21. Return result
+deactivate UserService
+
+UserController --> Router: 22. HTTP 200 response
+deactivate UserController
+
+Router --> UI: 23. Return summary
+deactivate Router
+UI --> Admin: 24. Display users statistics
+deactivate UI
+deactivate Admin
+
+@enduml

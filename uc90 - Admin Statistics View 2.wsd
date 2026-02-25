@@ -1,0 +1,60 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Dashboard UI" as UI
+boundary Router
+control ModerationController
+control ModerationService
+entity ChapterModerationModel
+database MongoDB
+
+Admin -> UI: 1. Open Dashboard (Moderation Weekly)
+activate Admin
+activate UI
+
+UI -> Router: 2. GET /moderation/queue?limit=200
+activate Router
+
+Router -> ModerationController: 3. queue(limit=200)
+activate ModerationController
+
+ModerationController -> ModerationService: 4. listQueue({status?, limit})
+activate ModerationService
+
+ModerationService -> ChapterModerationModel: 5. aggregate(pipeline)
+activate ChapterModerationModel
+
+ChapterModerationModel -> MongoDB: 6. Run aggregation pipeline
+activate MongoDB
+MongoDB --> ChapterModerationModel: 7. Return result
+deactivate MongoDB
+
+ChapterModerationModel --> ModerationService: 8. Return result
+deactivate ChapterModerationModel
+
+ModerationService --> ModerationController: 9. Return result
+deactivate ModerationService
+
+ModerationController --> Router: 10. HTTP 200 response
+deactivate ModerationController
+
+Router --> UI: 11. Return QueueItem[]
+deactivate Router
+
+UI --> Admin: 12. Display moderation weekly statistics
+deactivate UI
+deactivate Admin
+
+@enduml

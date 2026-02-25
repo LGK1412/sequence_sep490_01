@@ -1,0 +1,97 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Policy Edit UI" as UI
+boundary Router
+control PoliciesController
+control AccessTokenGuard
+control RolesGuard
+control PoliciesService
+entity PoliciesModel
+database MongoDB
+
+Admin -> UI: 1. Open "/admin/policies/{id}"
+activate Admin
+activate UI
+
+Admin -> UI: 2. Edit fields + click "Save Changes"
+
+UI -> Router: 3. PUT /policies/{id}
+activate Router
+
+Router -> AccessTokenGuard: 4. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 4.1. Deny
+  Router --> UI: 4.2. 401 Unauthorized
+  UI --> Admin: 4.3. Show error message
+end
+
+AccessTokenGuard --> Router: 5. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 6. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 6.1. Deny
+  Router --> UI: 6.2. 403 Forbidden
+  UI --> Admin: 6.3. Show error message
+end
+
+RolesGuard --> Router: 7. Allow
+deactivate RolesGuard
+
+Router -> PoliciesController: 8. update(id, dto)
+activate PoliciesController
+
+PoliciesController -> PoliciesService: 9. update(id, dto)
+activate PoliciesService
+
+PoliciesService -> PoliciesModel: 10. findByIdAndUpdate(id, dto, {new:true})
+activate PoliciesModel
+
+PoliciesModel -> MongoDB: 11. update by _id
+activate MongoDB
+MongoDB --> PoliciesModel: 12. updated | null
+deactivate MongoDB
+
+PoliciesModel --> PoliciesService: 13. updated | null
+deactivate PoliciesModel
+
+opt Not found
+  PoliciesService --> PoliciesController: 13.1. Throw NotFoundException
+  PoliciesController --> Router: 13.2. HTTP 404
+  Router --> UI: 13.3. Update failed
+  UI --> Admin: 13.4. Show error message
+end
+
+PoliciesService --> PoliciesController: 14. updated policy
+deactivate PoliciesService
+
+PoliciesController --> Router: 15. HTTP 200 response
+deactivate PoliciesController
+
+Router --> UI: 16. Return updated policy
+deactivate Router
+
+UI -> UI: 17. router.push("/admin/policies")
+UI --> Admin: 18. Update policy success
+
+deactivate UI
+deactivate Admin
+
+@enduml

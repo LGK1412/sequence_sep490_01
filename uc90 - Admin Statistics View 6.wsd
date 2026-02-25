@@ -1,0 +1,83 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Dashboard UI" as UI
+boundary Router
+control UserController
+control AccessTokenGuard
+control RolesGuard
+control UserService
+entity UserModel
+database MongoDB
+
+Admin -> UI: 1. Load Dashboard (Users Statistics)
+activate Admin
+activate UI
+
+UI -> Router: 2. GET /user/admin/charts/weekly-new?weeks=4
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> Admin: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> Admin: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> UserController: 7. getUsersWeeklyNew(weeks=4)
+activate UserController
+
+UserController -> UserService: 8. getUsersWeeklyNew(weeks)
+activate UserService
+
+UserService -> UserModel: 9. aggregate weekly new users
+activate UserModel
+UserModel -> MongoDB: 10. run aggregation pipeline
+activate MongoDB
+MongoDB --> UserModel: 11. rows[{week,new}]
+deactivate MongoDB
+UserModel --> UserService: 12. rows
+deactivate UserModel
+
+UserService --> UserController: 13. rows
+deactivate UserService
+
+UserController --> Router: 14. HTTP 200 response
+deactivate UserController
+
+Router --> UI: 15. Return weekly data
+deactivate Router
+UI --> Admin: 16. Display users statistics
+deactivate UI
+deactivate Admin
+
+@enduml

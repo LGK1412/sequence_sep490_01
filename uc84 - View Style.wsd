@@ -1,0 +1,56 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Style Management UI" as UI
+boundary Router
+control StylesController
+control StylesService
+entity StylesModel
+database MongoDB
+
+Admin -> UI: 1. Open Style Management page
+activate Admin
+activate UI
+
+UI -> Router: 2. GET /styles?q&status&category&page&limit&sort
+activate Router
+
+Router -> StylesController: 3. findAll(query)
+activate StylesController
+
+StylesController -> StylesService: 4. findAll()
+activate StylesService
+
+StylesService -> StylesModel: 5. find().exec()
+activate StylesModel
+StylesModel -> MongoDB: 6. query styles
+activate MongoDB
+MongoDB --> StylesModel: 7. Styles[]
+deactivate MongoDB
+StylesModel --> StylesService: 8. Styles[]
+deactivate StylesModel
+
+StylesService --> StylesController: 9. Styles[]
+deactivate StylesService
+StylesController --> Router: 10. HTTP 200 response
+deactivate StylesController
+Router --> UI: 11. Return styles list
+deactivate Router
+UI --> Admin: 12. Show styles list
+deactivate UI
+deactivate Admin
+
+@enduml

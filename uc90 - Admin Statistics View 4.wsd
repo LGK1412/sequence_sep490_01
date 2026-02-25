@@ -1,0 +1,84 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Dashboard UI" as UI
+boundary Router
+control ReportController
+control AccessTokenGuard
+control RolesGuard
+control ReportService
+entity ReportModel
+database MongoDB
+
+Admin -> UI: 1. Open Dashboard (Reports Statistics)
+activate Admin
+activate UI
+
+UI -> Router: 21. GET /reports/admin/charts/weekly-new?weeks=4
+activate Router
+
+Router -> AccessTokenGuard: 22. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 22.1. Deny
+  Router --> UI: 22.2. 401 Unauthorized
+  UI --> Admin: 22.3. Show error message
+end
+
+AccessTokenGuard --> Router: 23. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 24. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 24.1. Deny
+  Router --> UI: 24.2. 403 Forbidden
+  UI --> Admin: 24.3. Show error message
+end
+
+RolesGuard --> Router: 25. Allow
+deactivate RolesGuard
+
+Router -> ReportController: 26. getWeeklyNew(weeks=4)
+activate ReportController
+
+ReportController -> ReportService: 27. getWeeklyNew(weeks)
+activate ReportService
+
+ReportService -> ReportModel: 28. Get reports
+activate ReportModel
+ReportModel -> MongoDB: 29. Get reports
+activate MongoDB
+MongoDB --> ReportModel: 30. Return result
+deactivate MongoDB
+ReportModel --> ReportService: 31. Return result
+deactivate ReportModel
+
+ReportService --> ReportController: 32. Return result
+deactivate ReportService
+
+ReportController --> Router: 33. HTTP 200 response
+deactivate ReportController
+
+Router --> UI: 34. Return weekly chart data
+deactivate Router
+
+UI --> Admin: 36. Display reports statistics
+deactivate UI
+deactivate Admin
+
+@enduml

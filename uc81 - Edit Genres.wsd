@@ -1,0 +1,91 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Genre Management UI" as UI
+boundary Router
+control GenreController
+control ValidationPipe
+control GenreService
+entity GenreModel
+database MongoDB
+
+Admin -> UI: 1. Click "Update" on genre row
+activate Admin
+activate UI
+
+UI -> UI: 2. Open edit dialog + bind selected genre
+Admin -> UI: 3. Modify fields + submit update
+
+UI -> Router: 4. PATCH /genre/{id}
+activate Router
+
+alt Token invalid
+    Router --> UI: 4.1.1. 401 Unauthorized
+    UI --> Admin: 4.1.2. Show error message
+else Role invalid
+    Router --> UI: 4.2.1. 403 Forbidden
+    UI --> Admin: 4.2.2. Show error message
+end
+Router -> GenreController: 5. update(id, dto)
+activate GenreController
+
+GenreController -> ValidationPipe: 6. Validate UpdateGenreDto
+activate ValidationPipe
+
+opt Validation failed
+    ValidationPipe --> GenreController: 6.1. Throw 400 error
+    GenreController --> Router: 6.2. HTTP 400 response
+    Router --> UI: 6.3. Validation error
+    UI --> Admin: 6.4. Show error message
+end
+ValidationPipe --> GenreController: 7. DTO valid
+deactivate ValidationPipe
+
+GenreController -> GenreService: 8. updateGenre(id, dto)
+activate GenreService
+
+opt Invalid ObjectId
+    GenreService --> GenreController: 8.1. Throw BadRequest
+    GenreController --> Router: 8.2. HTTP 400 response
+    Router --> UI: 8.3. Invalid ID error
+    UI --> Admin: 8.4. Show error message
+end
+GenreService -> GenreModel: 9. findByIdAndUpdate(id, dto, {new:true})
+activate GenreModel
+GenreModel -> MongoDB: 10. Update document
+activate MongoDB
+MongoDB --> GenreModel: 11. Return result
+deactivate MongoDB
+GenreModel --> GenreService: 12. Return result
+deactivate GenreModel
+opt Not found
+    GenreService --> GenreController: 12.3. Throw NotFound
+    GenreController --> Router: 12.4. HTTP 404 response
+    Router --> UI: 12.5. Not found error
+    UI --> Admin: 12.6. Show error message
+end
+                
+GenreService --> GenreController: 13. Updated genre
+deactivate GenreService
+GenreController --> Router: 14. HTTP 200 response
+deactivate GenreController
+Router --> UI: 15. Return updated genre
+deactivate Router
+UI --> Admin: 16. Update success
+deactivate UI
+deactivate Admin
+
+@enduml

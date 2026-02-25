@@ -1,0 +1,84 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Genre Management UI" as UI
+boundary Router
+control GenreController
+control GenreService
+entity GenreModel
+entity MangaModel
+database MongoDB
+
+Admin -> UI: 1. Open Genre Management page
+activate Admin
+activate UI
+
+UI -> UI: 2. useEffect() call fetchGenres()
+activate UI
+
+UI -> Router: 3. GET /genre
+deactivate UI
+activate Router
+
+alt Token invalid
+    Router --> UI: 3.1.1. 401 Unauthorized
+    UI --> Admin: 3.1.2. Show error message
+else Role invalid
+    Router --> UI: 3.2.1. 403 Forbidden
+    UI --> Admin: 3.2.2. Show error message
+end
+    Router -> GenreController: 4. getAllGenres()
+    activate GenreController
+
+    GenreController -> GenreService: 5. getAllGenres()
+    activate GenreService
+
+    GenreService -> GenreModel: 6. find().sort({name:1})
+    activate GenreModel
+    GenreModel -> MongoDB: 7. query genres
+    activate MongoDB
+    MongoDB --> GenreModel: 8. genres[]
+    deactivate MongoDB
+    GenreModel --> GenreService: 9. genres[]
+    deactivate GenreModel
+
+    GenreService -> MangaModel: 10. aggregate(unwind + group count)
+    activate MangaModel
+    MangaModel -> MongoDB: 11. run aggregate
+    activate MongoDB
+    MongoDB --> MangaModel: 12. counts[]
+    deactivate MongoDB
+    MangaModel --> GenreService: 13. counts[]
+    deactivate MangaModel
+
+    GenreService -> GenreService: 14. Merge counts, genres
+    activate GenreService
+    GenreService --> GenreController: 15. genresWithStoriesCount[]
+    deactivate GenreService
+    deactivate GenreService
+
+    GenreController --> Router: 16. HTTP 200 response
+    deactivate GenreController
+    Router --> UI: 17. Return genres list
+    deactivate Router
+
+    UI --> Admin: 19. Display genres with storiesCount
+
+
+deactivate UI
+deactivate Admin
+
+@enduml

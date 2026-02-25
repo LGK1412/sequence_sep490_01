@@ -1,0 +1,93 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Dashboard UI" as UI
+boundary Router
+control ReportController
+control AccessTokenGuard
+control RolesGuard
+control ReportService
+entity ReportModel
+database MongoDB
+
+Admin -> UI: 1. Open Dashboard (Reports Statistics)
+activate Admin
+activate UI
+
+UI -> Router: 2. GET /reports/admin/summary
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> Admin: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> Admin: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> ReportController: 7. getAdminSummary()
+activate ReportController
+
+ReportController -> ReportService: 8. getAdminSummary()
+activate ReportService
+
+ReportService -> ReportModel: 9. count open reports
+activate ReportModel
+ReportModel -> MongoDB: 10. countDocuments(status in open)
+activate MongoDB
+MongoDB --> ReportModel: 11. open
+deactivate MongoDB
+ReportModel --> ReportService: 12. open
+deactivate ReportModel
+
+ReportService -> ReportModel: 13. count new reports (last 7 days)
+activate ReportModel
+ReportModel -> MongoDB: 14. countDocuments(status="new", createdAt>=now-7d)
+activate MongoDB
+MongoDB --> ReportModel: 15. new7d
+deactivate MongoDB
+ReportModel --> ReportService: 16. new7d
+deactivate ReportModel
+
+ReportService --> ReportController: 17. {open, new7d}
+deactivate ReportService
+
+ReportController --> Router: 18. HTTP 200 response
+deactivate ReportController
+
+Router --> UI: 19. Return summary data
+deactivate Router
+
+UI --> Admin: 20. Display reports statistics
+deactivate UI
+deactivate Admin
+
+@enduml

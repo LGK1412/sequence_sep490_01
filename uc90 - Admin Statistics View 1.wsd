@@ -1,0 +1,105 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin
+boundary "Admin Dashboard UI" as UI
+boundary Router
+control AdminNotificationController
+control AccessTokenGuard
+control RolesGuard
+control AdminNotificationService
+control NotificationService
+entity NotificationModel
+database MongoDB
+
+Admin -> UI: 1. Open Dashboard (Notification Stats)
+activate Admin
+activate UI
+
+UI -> Router: 2. GET /admin/notifications/stats
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> Admin: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> Admin: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> AdminNotificationController: 7. getStats()
+activate AdminNotificationController
+
+AdminNotificationController -> AdminNotificationController: 8. extract senderId from token
+activate AdminNotificationController
+opt Missing senderId
+  AdminNotificationController --> Router: 8.1. HTTP 400 BadRequest
+  deactivate AdminNotificationController
+  Router --> UI: 8.2. Stats failed
+  UI --> Admin: 8.3. Show error message
+end
+
+AdminNotificationController -> AdminNotificationService: 9. getSentStats(senderId)
+activate AdminNotificationService
+
+AdminNotificationService -> NotificationService: 10. Get notifications
+activate NotificationService
+
+NotificationService -> NotificationModel: 11. Get notifications
+activate NotificationModel
+
+NotificationModel -> MongoDB: 12. Query documents
+activate MongoDB
+MongoDB --> NotificationModel: 13. Return result
+deactivate MongoDB
+
+NotificationModel --> NotificationService: 14. Return result
+deactivate NotificationModel
+
+NotificationService --> AdminNotificationService: 15. Return result
+deactivate NotificationService
+
+AdminNotificationService -> AdminNotificationService: 16. Calculate total, read, unread
+activate AdminNotificationService
+AdminNotificationService --> AdminNotificationController: 17. Return result
+deactivate AdminNotificationService
+deactivate AdminNotificationService
+
+AdminNotificationController --> Router: 18. HTTP 200 response
+deactivate AdminNotificationController
+
+Router --> UI: 19. Return stats
+deactivate Router
+
+UI --> Admin: 20. Display notification statistics
+deactivate UI
+deactivate Admin
+
+@enduml
