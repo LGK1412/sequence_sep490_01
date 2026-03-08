@@ -1,0 +1,65 @@
+bottomparticipants
+
+actor User
+boundary "Login Page" as UI
+boundary Router
+control AuthController
+control AuthService
+control UserService
+entity UserModel
+boundary HashUtil
+boundary JwtService
+database MongoDB
+
+User -> UI: 1. Enter email & password\nClick Login
+activate User
+activate UI
+
+UI -> Router: 2. POST /api/auth/login (loginDto)
+activate Router
+
+Router -> AuthController: 3. login(loginDto)
+activate AuthController
+
+AuthController -> AuthService: 4. login(loginDto)
+activate AuthService
+
+ref over AuthService, MongoDB: 5. Subsequence - Find user for email login
+
+loop User not found / Account not verified / Account banned / Google account detected
+    AuthService --> AuthController: 5.1. Throw BadRequestException
+    AuthController --> Router: 5.2. HTTP 400 response
+    Router --> UI: 5.3. Show error
+    UI --> User: 5.4. Invalid credentials
+end
+
+AuthService -> HashUtil: 6. Compare password
+activate HashUtil
+HashUtil --> AuthService: 7. Result
+deactivate HashUtil
+
+opt Password mismatch
+    AuthService --> AuthController: 8.1. Throw BadRequestException
+    AuthController --> Router: 8.2. HTTP 400 response
+    Router --> UI: 8.3. Show error
+    UI --> User: 8.4. Invalid credentials
+end
+
+AuthService -> JwtService: 9. Generate JWT access token
+activate JwtService
+JwtService --> AuthService: 10. Result
+deactivate JwtService
+
+AuthService --> AuthController: 11. Return token & payload
+deactivate AuthService
+
+AuthController --> Router: 12. Set-Cookie
+deactivate AuthController
+
+Router --> UI: 13. Login success 
+deactivate Router
+
+UI --> User: 14. Redirect to home page
+deactivate UI
+deactivate User
+@enduml

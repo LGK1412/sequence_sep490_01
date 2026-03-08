@@ -1,0 +1,41 @@
+bottomparticipants
+actor User
+boundary "Comment Section (UI)" as UI
+boundary Router
+control CommentController
+control CommentService
+entity VoteCommentModel
+database MongoDB
+
+User -> UI: 1. Click Downvote
+activate User
+activate UI
+
+UI -> Router: 2. POST /downvote
+activate Router
+
+Router -> CommentController: 3. downVote(comment_id, req)
+activate CommentController
+
+loop Token / Role Invalid
+    CommentController --> Router: 3.1 401 / 403 Error
+    Router --> UI: 3.2 Show error
+    UI --> User: 3.3 Error message
+end
+
+CommentController -> CommentService: 4. downVote(comment_id, payload)
+activate CommentService
+
+CommentService -> CommentService: 5. checkUser(payload)
+activate CommentService
+space
+deactivate CommentService
+
+alt User not exist / User is banned
+    CommentService --> CommentController: 5.1 Error
+    CommentController --> Router: 5.2 400 Error
+    Router --> UI: 5.3 Show error
+    UI --> User: 5.4 Error message
+end
+
+ref over User, MongoDB: 6. Subsequence - Vote comment 1

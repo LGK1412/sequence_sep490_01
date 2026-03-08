@@ -1,0 +1,54 @@
+bottomparticipants
+
+actor User
+boundary "Following Authors Page (UI)" as UI
+boundary Router
+control UserController
+control UserService
+control JwtService
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Open Following Authors
+activate User
+activate UI
+
+UI -> Router: 2. GET /following
+activate Router
+
+Router -> UserController: 3. get following
+activate UserController
+UserController -> UserService: 4. get following
+
+activate UserService
+UserService -> JwtService: 5. Verify token
+activate JwtService
+JwtService --> UserService: 6. Decoded
+deactivate JwtService
+
+UserService -> UserModel: 7. Find user
+activate UserModel
+UserModel -> MongoDB: 8. Find user
+activate MongoDB
+MongoDB --> UserModel: 9. Return user
+deactivate MongoDB
+UserModel --> UserService: 10. User data
+deactivate UserModel
+
+opt User not found
+    UserService --> UserController: 10.1. Throw error
+    UserController --> Router: 10.2. HTTP error response
+    Router --> UI: 10.3. Render error message
+    UI --> User: 10.4. Show error
+end
+
+UserService --> UserController: 11. Return followings
+deactivate UserService
+
+UserController --> Router: 12. HTTP response
+deactivate UserController
+Router --> UI: 13. show list
+deactivate Router
+UI --> User: 14. Show list
+deactivate UI
+deactivate User

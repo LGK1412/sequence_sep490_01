@@ -1,0 +1,50 @@
+bottomparticipants
+
+actor User
+boundary "Home / Discover Page" as UI
+boundary Router
+control MangaController
+control MangaService
+entity MangaModel
+database MongoDB
+
+User -> UI: 1. Click "Random story"
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/manga/random
+activate Router
+
+Router -> MangaController: 3. getRandom()
+activate MangaController
+
+MangaController -> MangaService: 4. getRandomManga()
+activate MangaService
+
+MangaService -> MangaModel: 5. aggregate(random pipeline)
+activate MangaModel
+MangaModel -> MongoDB: 6. aggregate (match, lookup chapters, sample)
+activate MongoDB
+MongoDB --> MangaModel: 7. random manga
+deactivate MongoDB
+MangaModel --> MangaService: 8. aggregation result
+deactivate MangaModel
+
+opt No story found
+  MangaService --> MangaController: 8.1. null
+  MangaController --> Router: 8.2. NotFoundException
+  Router --> UI: 8.3. Show error
+  UI --> User: 8.4. Show error
+end
+
+MangaService --> MangaController: 9. return random manga (_id, title)
+deactivate MangaService
+
+MangaController --> Router: 10. HTTP response
+deactivate MangaController
+
+Router --> UI: 11. Response data
+deactivate Router
+UI --> User: 12. Show random story
+deactivate UI
+deactivate User

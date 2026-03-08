@@ -1,0 +1,44 @@
+bottomparticipants
+
+actor User
+boundary "Manga Select / Dropdown" as UI
+boundary Router
+control MangaController
+control MangaService
+entity MangaModel
+database MongoDB
+
+User -> UI: 1. Open manga list (basic)
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/manga/
+activate Router
+
+Router -> MangaController: 3. getAllMangaBasic()
+activate MangaController
+
+MangaController -> MangaService: 4. getAllBasic()
+activate MangaService
+
+MangaService -> MangaModel: 5. find(isDeleted=false, isPublish=true)
+activate MangaModel
+MangaModel -> MongoDB: 6. query mangas
+activate MongoDB
+MongoDB --> MangaModel: 7. manga list
+deactivate MongoDB
+MangaModel --> MangaService: 8. return {_id, title}[]
+deactivate MangaModel
+
+MangaService --> MangaController: 9. return basic manga list
+deactivate MangaService
+
+MangaController --> Router: 10. HTTP response
+deactivate MangaController
+
+Router --> UI: 11. Response data
+deactivate Router
+UI --> User: 12. Show manga list
+deactivate UI
+deactivate User
+@enduml

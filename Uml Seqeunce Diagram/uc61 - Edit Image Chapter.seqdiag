@@ -1,0 +1,135 @@
+bottomparticipants
+
+actor Author
+boundary "Update Image Chapter UI" as UI
+boundary Router
+control ImageChapterController
+control ImageChapterService
+entity ChapterModel
+entity ImageChapterModel
+entity FileSystem
+entity Sharp
+database MongoDB
+
+Author -> UI: 1. Submit update image chapter form
+activate Author
+activate UI
+
+UI -> Router: 2. PATCH /chapter-image/{id}
+activate Router
+
+alt Invalid chapterId
+    Router --> UI: 2.1. BadRequestException
+    UI --> Author: 2.2. Error message
+else Token invalid / Role invalid
+    Router --> UI: 2.3. Unauthorized / Forbidden
+    UI --> Author: 2.4. Error message
+end
+
+Router -> ImageChapterController: 3. updateChapter(id, body, files)
+activate ImageChapterController
+
+ImageChapterController -> ImageChapterService: 4. updateChapterWithImages(id, dto, files)
+activate ImageChapterService
+
+ImageChapterService -> ImageChapterService: 5. Parse new_images_meta
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+opt Invalid new_images_meta
+    ImageChapterService --> ImageChapterController: 5.1. BadRequestException
+    ImageChapterController --> Router: 5.2. Error response
+    Router --> UI: 5.3. Show error
+    UI --> Author: 5.4. Error message
+end
+
+ImageChapterService -> ChapterModel: 6. findByIdAndUpdate(chapter)
+activate ChapterModel
+ChapterModel -> MongoDB: 7. update chapter
+activate MongoDB
+MongoDB --> ChapterModel: 8. updated chapter / null
+deactivate MongoDB
+ChapterModel --> ImageChapterService: 9. chapter
+deactivate ChapterModel
+
+opt Chapter not found
+    ImageChapterService --> ImageChapterController: 9.1. NotFoundException
+    ImageChapterController --> Router: 9.2. Error response
+    Router --> UI: 9.3. Show error
+    UI --> Author: 9.4. Error message
+end
+
+ImageChapterService -> ImageChapterModel: 10. findOne(chapter_id)
+activate ImageChapterModel
+ImageChapterModel -> MongoDB: 11. query imageChapter
+activate MongoDB
+MongoDB --> ImageChapterModel: 12. imageChapter / null
+deactivate MongoDB
+ImageChapterModel --> ImageChapterService: 13. imageChapter
+deactivate ImageChapterModel
+
+opt ImageChapter not exist
+    ImageChapterService -> ImageChapterModel: 13.1.1. new ImageChapter()
+    activate ImageChapterModel
+    ImageChapterModel --> ImageChapterService: 13.1.2. Return new imageChapter
+    deactivate ImageChapterModel
+end
+
+opt Process new uploaded images
+    ImageChapterService -> FileSystem: 13.2.1. mkdir chapter directory
+    activate FileSystem
+    FileSystem --> ImageChapterService: 13.2.2. directory ready
+    deactivate FileSystem
+
+    loop For each uploaded file
+        ImageChapterService -> Sharp: 13.2.2.1. convert buffer → webp
+        activate Sharp
+        Sharp --> ImageChapterService: 13.2.2.1. saved image file
+        deactivate Sharp
+    end
+end
+
+ImageChapterService -> ImageChapterService: 14. Merge existing + new images
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+ImageChapterService -> ImageChapterService: 15. Sort by order
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+ImageChapterService -> ImageChapterService: 16. Detect removed images
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+
+opt Delete removed images
+    ImageChapterService -> FileSystem: 16.1.1 unlink removed image files
+    activate FileSystem
+    FileSystem --> ImageChapterService: 16.1.2. removed image files
+    deactivate FileSystem
+end
+
+ImageChapterService -> ImageChapterModel: 17. save(images, is_completed)
+activate ImageChapterModel
+ImageChapterModel -> MongoDB: 18. update imageChapter
+activate MongoDB
+MongoDB --> ImageChapterModel: 19. saved
+deactivate MongoDB
+ImageChapterModel --> ImageChapterService: 20. imageChapter
+deactivate ImageChapterModel
+
+ImageChapterService --> ImageChapterController: 21. {chapter, imageChapter}
+deactivate ImageChapterService
+
+ImageChapterController --> Router: 22. HTTP response
+deactivate ImageChapterController
+Router --> UI: 23. Show updated image chapter
+deactivate Router
+UI --> Author: 24. Update success
+deactivate UI
+deactivate Author
+@enduml

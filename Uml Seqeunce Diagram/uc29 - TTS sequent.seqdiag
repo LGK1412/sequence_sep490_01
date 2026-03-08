@@ -1,0 +1,96 @@
+bottomparticipants
+
+title TTSReader Component — Optimized Sequence Diagram
+
+actor User
+boundary "TTSReader" as TTS
+control "SpeechSynthesis API" as Synth
+control "Gemini API" as Gemini
+
+User -> TTS : 1. Click Play
+activate User
+activate TTS
+
+TTS -> TTS : 2. stop current playback
+activate TTS
+space
+deactivate TTS
+
+alt cleanText does not exist
+    TTS -> TTS : 2.1.1. setIsLoading(true)
+    activate TTS
+    space
+    deactivate TTS
+
+    TTS -> Gemini : 2.1.2. generateContent(prompt)
+    activate Gemini
+    Gemini --> TTS : 2.1.3. cleanedText
+    deactivate Gemini
+    TTS -> TTS : 2.1.4. save cleanedText
+    activate TTS
+space
+deactivate TTS
+
+    TTS -> TTS : 2.1.5. setIsLoading(false)
+    activate TTS
+space
+deactivate TTS
+
+else cleanText already exists
+    TTS -> TTS : 2.2.6. reuse cleanedText
+    activate TTS
+space
+deactivate TTS
+
+end
+
+TTS -> TTS : 3. split cleanedText into chunks
+activate TTS
+space
+deactivate TTS
+
+TTS -> TTS : 4. setPlaying(true)
+activate TTS
+space
+deactivate TTS
+
+
+loop for each chunk
+    TTS -> Synth : 5. speak(utterance)
+    activate Synth
+end
+
+Synth --> TTS : 6. onend (last chunk finished)
+deactivate Synth
+
+TTS -> TTS : 7. setPlaying(false)
+activate TTS
+space
+deactivate TTS
+
+User -> TTS : 8. Click Pause
+TTS -> Synth : 9. pause()
+activate Synth
+User -> TTS : 10. Click Resume
+TTS -> Synth : 11. resume()
+User -> TTS : 12. Click Stop
+TTS -> Synth : 13. cancel()
+deactivate Synth
+TTS -> TTS : 14. setPlaying(false)
+activate TTS
+space
+deactivate TTS
+
+TTS -> TTS : 15. clear utterance reference
+activate TTS
+space
+deactivate TTS
+
+User -> TTS : 16. Change Voice / Rate / Pitch
+deactivate User
+TTS -> TTS : 17. update settings
+activate TTS
+space
+deactivate TTS
+
+deactivate TTS

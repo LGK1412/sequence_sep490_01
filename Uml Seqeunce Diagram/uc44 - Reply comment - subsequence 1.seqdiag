@@ -1,0 +1,56 @@
+bottomparticipants
+
+title Subsequence - Reply comment 1
+
+actor User
+boundary "Chapter Comment Section (UI)" as UI
+boundary Router
+control ReplyController
+control ReplyService
+control ChapterService
+control MangaService
+entity ReplyModel
+database MongoDB
+
+ReplyService -> ReplyModel: 1. save reply
+activate ReplyModel
+activate ReplyService
+ReplyModel -> MongoDB: 2. insert reply
+activate MongoDB
+MongoDB --> ReplyModel: 3. savedReply
+deactivate MongoDB
+ReplyModel --> ReplyService: 4. savedReply
+deactivate ReplyModel
+
+opt Create Reply Failed
+    ReplyService --> ReplyController: 4.1. Error
+    activate ReplyController
+    ReplyController --> Router: 4.2. 500 Error
+    activate Router
+    Router --> UI: 4.3 Show error
+    activate UI
+    UI --> User: 4.4 Error message
+    activate User
+end
+
+ReplyService -> ChapterService: 5. getChapterById(chapter_id)
+activate ChapterService
+ChapterService --> ReplyService: 6. chapter
+deactivate ChapterService
+
+ReplyService -> MangaService: 7. get author
+activate MangaService
+MangaService --> ReplyService: 8. manga
+deactivate MangaService
+
+opt Invalid manga id
+    ReplyService --> ReplyController: 8.1. Error
+    ReplyController --> Router: 8.2. 400 Error
+    deactivate ReplyController
+    Router --> UI: 8.3 Show error
+    deactivate Router
+    UI --> User: 8.4 Error message
+    deactivate User
+    deactivate UI
+end
+@enduml

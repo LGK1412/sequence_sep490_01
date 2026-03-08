@@ -1,0 +1,32 @@
+bottomparticipants
+
+actor User
+boundary "Navbar" as Navbar
+control "ThemeProvider" as Theme
+database "Local Storage" as Storage
+
+User -> Navbar: 1. Click theme toggle
+activate User
+activate Navbar
+
+Navbar -> Theme: 2. setTheme(dark ? light : dark)
+activate Theme
+
+Theme -> Storage: 3. Persist theme
+activate Storage
+
+opt Storage unavailable
+  Storage --> Theme: 3.1. Fail
+  Theme --> Navbar: 3.2. Apply for session
+  Navbar --> User: 3.3. Show warning
+end  
+
+Storage --> Theme: 4. OK
+deactivate Storage
+
+Theme --> Navbar: 5. Trigger re-render with new theme
+deactivate Theme
+
+Navbar --> User: 6. See updated theme
+deactivate Navbar
+deactivate User

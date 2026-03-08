@@ -1,0 +1,38 @@
+bottomparticipants
+
+title Subsequence - Find user for Google Login
+
+control AuthService
+control UserService
+entity UserModel
+database MongoDB
+
+AuthService -> UserService: 1. findByEmail(email)
+activate UserService
+activate AuthService
+UserService -> UserModel: 2. findOne({ email })
+activate UserModel
+UserModel -> MongoDB: 3. Get user data
+activate MongoDB
+MongoDB --> UserModel: 4. User / null
+deactivate MongoDB
+UserModel --> UserService: 5. User / null
+deactivate UserModel
+UserService --> AuthService: 6. Result
+deactivate UserService
+
+opt User not found
+    AuthService -> UserService: 6.1. createUserGoogle()
+    activate UserService
+    UserService -> UserModel: 6.2. insert new user (verified = true)
+    activate UserModel
+    UserModel -> MongoDB: 6.3. Insert user data
+    activate MongoDB
+    MongoDB --> UserModel: 6.4. New user created
+    deactivate MongoDB
+    UserModel --> UserService: 6.5. New user
+    deactivate UserModel
+    UserService --> AuthService: 6.6. New user
+    deactivate UserService
+    deactivate AuthService
+end

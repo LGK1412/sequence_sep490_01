@@ -1,0 +1,50 @@
+deactivate MangaService
+
+actor User
+boundary "Chapter Reader" as UI
+boundary Router
+control ChapterController
+control ChapterService
+entity ChapterModel
+database MongoDB
+
+User -> UI: 1. Open chapter content
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/chapter/content/{id}
+activate Router
+
+Router -> ChapterController: 3. getChapterContentById(id)
+activate ChapterController
+
+ChapterController -> ChapterService: 4. getChapterCompact(chapterId)
+activate ChapterService
+
+ChapterService -> ChapterModel: 5. get chapter content
+activate ChapterModel
+ChapterModel -> MongoDB: 6. aggregate pipeline
+activate MongoDB
+MongoDB --> ChapterModel: 7. aggregated document
+deactivate MongoDB
+ChapterModel --> ChapterService: 8. docs[]
+deactivate ChapterModel
+
+opt Chapter not found
+  ChapterService --> ChapterController: 8.1. NotFoundException
+  ChapterController --> Router: 8.2. HTTP error
+  Router --> UI: 8.3. Show error
+  UI --> User: 8.4. Show error
+end
+
+ChapterService --> ChapterController: 9. return compact chapter
+deactivate ChapterService
+
+ChapterController --> Router: 10. HTTP response
+deactivate ChapterController
+
+Router --> UI: 11. Response data
+deactivate Router
+UI --> User: 12. Render chapter (text / image)
+deactivate UI
+deactivate User

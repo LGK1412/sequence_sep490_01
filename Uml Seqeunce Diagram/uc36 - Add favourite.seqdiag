@@ -1,0 +1,89 @@
+bottomparticipants
+
+actor User
+boundary "Manga Detail Page (UI)" as UI
+boundary Router
+control UserController
+control UserService
+control JwtService
+control EventEmitter
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Click Favourite / Unfavourite
+activate User
+activate UI
+
+UI -> Router: 2. POST /toggle-favourite
+activate Router
+
+Router -> UserController: 3. Toggle favourite
+activate UserController
+UserController -> UserService: 4. Toggle favourite
+
+activate UserService
+UserService -> JwtService: 5. Verify token
+activate JwtService
+
+opt Missing token
+    JwtService --> UserService: 5.1: Error response
+    UserService --> UserController: 5.2. Error response
+    UserController --> Router: 5.3. HTTP error response
+    Router --> UI: 5.4. HTTP error response
+    UI --> User: 5.5. Show error
+end
+
+JwtService --> UserService: 6. Decoded
+deactivate JwtService
+UserService -> UserModel: 7. Find user
+activate UserModel
+UserModel -> MongoDB: 8. Find user
+activate MongoDB
+MongoDB --> UserModel: 9. Return user
+deactivate MongoDB
+UserModel --> UserService: 10. Return user
+deactivate UserModel
+
+opt User not found
+    UserService --> UserController: 10.1. Error response
+    UserController --> Router: 10.2. HTTP error response
+    Router --> UI: 10.3. HTTP error response
+    UI --> User: 10.4. Show error
+end
+
+
+opt Already favourite (REMOVE)
+    UserService -> UserService: 11. Remove manga from list
+    activate UserService
+    space
+    deactivate UserService
+end
+
+UserService -> UserService: 12. Add manga to list
+activate UserService
+space
+deactivate UserService
+
+UserService -> EventEmitter: 13. Emit favourite count
+activate EventEmitter
+EventEmitter --> UserService: 14. Return result
+deactivate EventEmitter
+
+UserService -> UserModel: 15. Save updated favourites
+activate UserModel
+UserModel -> MongoDB: 16. Save user
+activate MongoDB
+MongoDB --> UserModel: 17. Saved
+deactivate MongoDB
+UserModel --> UserService: 18. Save result
+deactivate UserModel
+
+UserService --> UserController: 19. Return favourites & isFavourite
+deactivate UserService
+UserController --> Router: 20. HTTP response
+deactivate UserController
+Router --> UI: 21. Update favourite state
+deactivate Router
+UI --> User: 22. Show result
+deactivate UI
+deactivate User

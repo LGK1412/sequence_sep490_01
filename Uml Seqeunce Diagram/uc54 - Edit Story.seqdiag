@@ -1,0 +1,94 @@
+bottomparticipants
+
+actor Author
+boundary "Update Manga UI" as UI
+boundary Router
+control MangaController
+control MangaService
+control StylesService
+entity MangaModel
+database MongoDB
+
+Author -> UI: 1. Submit update manga form
+activate Author
+activate UI
+
+UI -> Router: 2. PATCH /update/{mangaId}
+activate Router
+
+alt Token invalid
+    Router --> UI: 2.1 Show error
+    UI --> Author: 2.2 Error message
+else Role invalid
+    Router --> UI: 2.3 Show error
+    UI --> Author: 2.4 Error message
+end
+
+Router -> MangaController: 3. updateManga(mangaId, dto, file, req)
+activate MangaController
+
+MangaController -> MangaService: 4. updateManga(mangaId, dto, authorId)
+activate MangaService
+
+opt Invalid mangaId
+    MangaService --> MangaController: 4.1 BadRequestException
+    MangaController --> Router: 4.2 Error response
+    Router --> UI: 4.3 Show error
+    UI --> Author: 4.4 Error message
+end
+
+opt Validate styles
+    MangaService -> StylesService: 4.2. findById(styleId)
+    activate StylesService
+    StylesService --> MangaService: 4.3. style / null
+    deactivate StylesService
+
+    alt Style not exist
+        MangaService --> MangaController: 4.3.1. BadRequestException
+        MangaController --> Router: 4.3.2. Error response
+        Router --> UI: 4.3.3. Show error
+        UI --> Author: 4.3.4. Error message
+    else Style is hidden
+        MangaService --> MangaController: 4.3.5. BadRequestException
+        MangaController --> Router: 4.3.6. Error response
+        Router --> UI: 4.3.7. Show error
+        UI --> Author: 4.3.8. Error message
+    end
+end
+
+MangaService -> MangaModel: 5. updateOne({_id, authorId}, dto)
+activate MangaModel
+MangaModel -> MongoDB: 6. update document
+activate MongoDB
+MongoDB --> MangaModel: 7. update result
+deactivate MongoDB
+MangaModel --> MangaService: 8. modifiedCount
+deactivate MangaModel
+
+opt Update failed
+    MangaService --> MangaController: 8.1 BadRequestException
+    MangaController --> Router: 8.2 Error response
+    Router --> UI: 8.3 Show error
+    UI --> Author: 8.4 Error message
+end
+
+MangaService -> MangaModel: 9. findById(id)
+activate MangaModel
+MangaModel -> MongoDB: 10. query manga
+activate MongoDB
+MongoDB --> MangaModel: 11. manga document
+deactivate MongoDB
+MangaModel --> MangaService: 12. manga
+deactivate MangaModel
+
+MangaService --> MangaController: 13. updated manga
+deactivate MangaService
+
+MangaController --> Router: 14. HTTP response
+deactivate MangaController
+Router --> UI: 15. Show updated manga
+deactivate Router
+UI --> Author: 16. Manga updated successfully
+deactivate UI
+deactivate Author
+@enduml

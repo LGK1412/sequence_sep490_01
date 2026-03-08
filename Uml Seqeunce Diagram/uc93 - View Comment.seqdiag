@@ -1,0 +1,108 @@
+bottomparticipants
+
+actor Admin
+boundary "Comments Management UI" as UI
+boundary Router
+control AccessTokenGuard
+control RolesGuard
+control CommentsController
+control CommentsService
+entity CommentsModel
+entity ChaptersModel
+entity MangaModel
+entity UsersModel
+database MongoDB
+
+Admin -> UI: 1. Open /admin/comments
+activate Admin
+activate UI
+
+UI -> UI: 2. Init state (comments=[], loading=true)
+activate UI
+space
+deactivate UI
+
+UI -> Router: 3. GET /api/comment/all
+activate Router
+
+Router -> AccessTokenGuard: 4. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 4.1. Deny
+  Router --> UI: 4.2. 401 Unauthorized
+  UI --> Admin: 4.3. Show error message
+end
+
+AccessTokenGuard --> Router: 5. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 6. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 6.1. Deny
+  Router --> UI: 6.2. 403 Forbidden
+  UI --> Admin: 6.3. Show error message
+end
+
+RolesGuard --> Router: 7. Allow
+deactivate RolesGuard
+
+Router -> CommentsController: 8. getAllComments()
+activate CommentsController
+
+CommentsController -> CommentsService: 9. getAllComments()
+activate CommentsService
+
+CommentsService -> CommentsModel: 10. find() + sort(createdAt desc)
+activate CommentsModel
+CommentsModel -> MongoDB: 11. query comments
+activate MongoDB
+MongoDB --> CommentsModel: 12. comment documents
+deactivate MongoDB
+CommentsModel --> CommentsService: 13. comments[]
+deactivate CommentsModel
+
+CommentsService -> ChaptersModel: 14. populate chapter_id
+activate ChaptersModel
+ChaptersModel -> MongoDB: 15. query chapters
+activate MongoDB
+MongoDB --> ChaptersModel: 16. chapter docs
+deactivate MongoDB
+ChaptersModel --> CommentsService: 17. populated chapters
+deactivate ChaptersModel
+
+CommentsService -> MangaModel: 18. populate manga_id
+activate MangaModel
+MangaModel -> MongoDB: 19. query mangas
+activate MongoDB
+MongoDB --> MangaModel: 20. manga docs
+deactivate MongoDB
+MangaModel --> CommentsService: 21. populated mangas
+deactivate MangaModel
+
+CommentsService -> UsersModel: 22. populate user_id
+activate UsersModel
+UsersModel -> MongoDB: 23. query users
+activate MongoDB
+MongoDB --> UsersModel: 24. user docs
+deactivate MongoDB
+UsersModel --> CommentsService: 25. populated users
+deactivate UsersModel
+
+CommentsService --> CommentsController: 26. populated comments[]
+deactivate CommentsService
+
+CommentsController --> Router: 27. 200 OK + comments[]
+deactivate CommentsController
+
+Router --> UI: 28. JSON comments[]
+deactivate Router
+
+UI --> Admin: 29. Show comment table
+
+deactivate UI
+deactivate Admin
+
+@enduml

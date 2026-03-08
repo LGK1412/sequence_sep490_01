@@ -100,18 +100,13 @@ opt Update text chapter
 end
 
 opt Content or title changed
-    TextChapterService -> ChapterModel: 12.2.1. updateOne(ai flags = null)
-    activate ChapterModel
-    ChapterModel -> MongoDB: 12.2.2. update AI flags
-    activate MongoDB
-    MongoDB --> ChapterModel: 12.2.3. result
-    deactivate MongoDB
-    ChapterModel --> TextChapterService: 12.2.4. chapter
-    deactivate ChapterModel
+    ref over TextChapterService, ModerationListener, MongoDB
+        12.2.1. Subseqeunce - Add to queue for AI check policies
+    end ref
 
-    TextChapterService -> EventEmitter: 12.2.5. emit chapter.content_changed
-    activate EventEmitter
-    deactivate EventEmitter
+    ref over TextChapterService, ModerationListener, MongoDB
+        12.2.2. Subseqeunce - AI check policies
+    end ref
 end
 
 opt Publish chapter (false -> true)

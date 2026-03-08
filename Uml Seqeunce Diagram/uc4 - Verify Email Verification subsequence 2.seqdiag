@@ -1,0 +1,23 @@
+bottomparticipants
+
+title Subsequence - Update Verified Status
+
+control AuthService
+control UserService
+entity UserModel
+database MongoDB
+
+AuthService -> UserService: 1. Update verified status
+activate AuthService
+activate UserService
+UserService -> UserModel: 2. set verified = true
+activate UserModel
+UserModel -> MongoDB: 3. Update verified status
+activate MongoDB
+MongoDB --> UserModel: 4. Update success
+deactivate MongoDB
+UserModel --> UserService: 5. Update success
+deactivate UserModel
+UserService --> AuthService: 6. Result
+deactivate UserService
+deactivate AuthService

@@ -1,0 +1,80 @@
+bottomparticipants
+
+actor Admin
+boundary "Style Management UI" as UI
+boundary Router
+control StylesController
+control AccessTokenGuard
+control RolesGuard
+control StylesService
+entity StylesModel
+database MongoDB
+
+Admin -> UI: 1. Click Edit (pencil) + submit update form
+activate Admin
+activate UI
+
+UI -> UI: 2. Client validate (name, description)
+activate UI
+space
+deactivate UI
+opt Client validation failed
+    UI --> Admin: 2.1. Show inline error
+end
+
+UI -> Router: 3. PUT /styles/{id}
+activate Router
+
+Router -> AccessTokenGuard: 4. canActivate(request)
+activate AccessTokenGuard
+opt Token invalid
+    AccessTokenGuard --> Router: 4.1. Deny
+    Router --> UI: 4.2. 401 Unauthorized
+    UI --> Admin: 4.3. Show error message
+end
+AccessTokenGuard --> Router: 5. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 6. checkRole(ADMIN)
+activate RolesGuard
+opt Role invalid
+    RolesGuard --> Router: 6.1. Deny
+    Router --> UI: 6.2. 403 Forbidden
+    UI --> Admin: 6.3. Show error message
+end
+RolesGuard --> Router: 7. Allow
+deactivate RolesGuard
+
+Router -> StylesController: 8. update(id, dto)
+activate StylesController
+
+StylesController -> StylesService: 9. update(id, body)
+activate StylesService
+
+StylesService -> StylesModel: 10. Update style
+activate StylesModel
+StylesModel -> MongoDB: 11. update style
+activate MongoDB
+MongoDB --> StylesModel: 12. Updated style
+deactivate MongoDB
+StylesModel --> StylesService: 13. Updated style
+deactivate StylesModel
+
+opt Not found
+    StylesService --> StylesController: 13.1. null
+    StylesController --> Router: 13.2. HTTP 200 (null) or 404
+    Router --> UI: 13.3. Update failed
+    UI --> Admin: 13.4. Show error message
+end
+
+StylesService --> StylesController: 14. Updated style
+deactivate StylesService
+StylesController --> Router: 15. HTTP 200 response
+deactivate StylesController
+Router --> UI: 16. Return updated style
+deactivate Router
+UI --> Admin: 18. Update success
+deactivate UI
+deactivate Admin
+
+@enduml

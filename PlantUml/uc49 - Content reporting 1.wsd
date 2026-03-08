@@ -1,0 +1,113 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor "User/Author" as User
+boundary "Manga Detail UI" as UI
+boundary Router
+control ReportsController
+control AccessTokenGuard
+control RolesGuard
+control ValidationPipe
+control ReportsService
+entity ReportsModel
+database MongoDB
+
+User -> UI: 1. Click "Report" + open dialog
+activate User
+activate UI
+
+UI -> Router: 2. POST /reports (targetType=Manga, targetId, reason, description)
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid / expired
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> User: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(USER, AUTHOR)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> User: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> ReportsController: 7. create(dto)
+activate ReportsController
+
+ReportsController -> ValidationPipe: 8. validate(CreateReportDto)
+activate ValidationPipe
+
+opt DTO invalid
+  ValidationPipe --> ReportsController: 8.1. Throw 400 Bad Request
+  ReportsController --> Router: 8.2. HTTP 400
+  Router --> UI: 8.3. Validation failed
+  UI --> User: 8.4. Show error message
+end
+
+ValidationPipe --> ReportsController: 9. DTO valid
+deactivate ValidationPipe
+
+ReportsController -> ReportsService: 10. create(body)
+activate ReportsService
+
+ReportsService -> ReportsService: 11. Cast reporterId & targetId to ObjectId
+activate ReportsService
+ReportsService -> ReportsModel: 12. create(report)
+deactivate ReportsService
+activate ReportsModel
+
+ReportsModel -> MongoDB: 13. insert document (status="new")
+activate MongoDB
+
+opt DB error
+  MongoDB --> ReportsModel: 13.1. Error
+  ReportsModel --> ReportsService: 13.2. Throw error
+  ReportsService --> ReportsController: 13.3. HTTP 500
+  ReportsController --> Router: 13.4. Server error
+  Router --> UI: 13.5. Create failed
+  UI --> User: 13.6. Show error message
+end
+
+MongoDB --> ReportsModel: 14. Saved document
+deactivate MongoDB
+
+ReportsModel --> ReportsService: 15. Created report
+deactivate ReportsModel
+
+ReportsService --> ReportsController: 16. Created report
+deactivate ReportsService
+
+ReportsController --> Router: 17. HTTP 201 response
+deactivate ReportsController
+
+Router --> UI: 18. Return created report
+deactivate Router
+
+UI --> User: 19. Show success + close dialog
+deactivate UI
+deactivate User
+
+@enduml

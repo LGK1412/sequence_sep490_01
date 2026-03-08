@@ -1,0 +1,64 @@
+bottomparticipants
+
+actor User
+boundary "Chapter / Reading Page (UI)" as UI
+boundary Router
+control ChapterController
+control ChapterService
+entity ProgressModel
+entity HistoryModel
+database MongoDB
+
+User -> UI: 1. Finish / read chapter
+activate User
+activate UI
+
+UI -> Router: 2. POST /history/{userId}/{storyId}
+activate Router
+
+Router -> ChapterController: 3. createStoryHistory()
+activate ChapterController
+
+ChapterController -> ChapterController: 4. Parse params & convert ObjectId
+activate ChapterController
+space
+deactivate ChapterController
+
+ChapterController -> ChapterService: 5. createStoryHistory(user_id, story_id)
+
+activate ChapterService
+ChapterService -> ProgressModel: 6. Find latest progress by user
+activate ProgressModel
+
+ProgressModel -> MongoDB: 7. findOne({user_id}) sort last_read_at desc
+activate MongoDB
+MongoDB --> ProgressModel: 8. Latest progress / null
+deactivate MongoDB
+
+ProgressModel --> ChapterService: 9. latestProgress
+deactivate ProgressModel
+
+opt No progress found
+    ChapterService --> ChapterController: 9.1. Return message: No progress found
+    ChapterController --> Router: 9.2. HTTP response
+    Router --> UI: 9.3. Update UI
+    UI --> User: 9.4. No progress found
+end
+    ChapterService -> HistoryModel: 10. Upsert history with last_read_chapter
+    activate HistoryModel
+    HistoryModel -> MongoDB: 11. findOneAndUpdate (upsert)
+    activate MongoDB
+    MongoDB --> HistoryModel: 12. Updated history
+    deactivate MongoDB
+    HistoryModel --> ChapterService: 13. History result
+    deactivate HistoryModel
+    ChapterService --> ChapterController: 14. Return history
+
+deactivate ChapterService
+ChapterController --> Router: 156. HTTP response
+deactivate ChapterController
+Router --> UI: 16. Update UI
+deactivate Router
+UI --> User: 17. History saved
+deactivate UI
+deactivate User

@@ -1,0 +1,74 @@
+bottomparticipants
+
+actor User
+boundary "Chapter Comment Section (UI)" as UI
+boundary Router
+control ReplyController
+control ReplyService
+control ChapterService
+control MangaService
+control UserService
+control NotificationService
+entity ReplyModel
+database MongoDB
+
+User -> UI: 1. Reply to a comment
+activate User
+activate UI
+
+UI -> Router: 2. POST /create-reply-chapter
+activate Router
+
+Router -> ReplyController: 3. createCommentChapter(dto, req)
+activate ReplyController
+
+opt Token / Role Invalid
+    ReplyController --> Router: 3.1 401 / 403 Error
+    Router --> UI: 3.2 Show error
+    UI --> User: 3.3 Error message
+end
+
+ReplyController -> ReplyService: 4. createReplyChapter(dto, payload)
+activate ReplyService
+
+ReplyService -> ReplyService: 5. checkLegitUser(payload)
+activate ReplyService
+space
+deactivate ReplyService
+
+loop User not exist / User is banned
+    ReplyService --> ReplyController: 5.1 Error
+    ReplyController --> Router: 5.2 400 Error
+    Router --> UI: 5.3 Show error
+    UI --> User: 5.4 Error message
+end
+
+ref over ReplyService, MongoDB: 6. Subsequence - Reply comment 1
+
+ReplyService -> UserService: 7. getUserById(receiver_id)
+activate UserService
+UserService --> ReplyService: 8. receiver
+deactivate UserService
+
+ReplyService -> NotificationService: 9. createNotification(dto)
+activate NotificationService
+NotificationService --> ReplyService: 10. send_noti_result
+deactivate NotificationService
+
+opt Manga has author
+    ReplyService -> UserService: 10.1. removeDeviceId(authorId, send_noti_result)
+    activate UserService
+    UserService --> ReplyService: 10.2. done
+    deactivate UserService
+end
+
+ReplyService --> ReplyController: 11. savedReply
+deactivate ReplyService
+
+ReplyController --> Router: 12. HTTP response (success)
+deactivate ReplyController
+Router --> UI: 13. Update UI
+deactivate Router
+UI --> User: 14. View new reply
+deactivate UI
+deactivate User

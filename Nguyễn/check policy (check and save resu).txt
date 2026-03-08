@@ -1,0 +1,57 @@
+@startuml
+actor System as SYS
+
+control  "ModerationService\nrunAiCheck / saveAiResult" as ModSvc
+control  "GeminiModerator\ncheck()" as Gemini
+entity   "Chapter\n(chapterModel)" as ChapterDB
+entity   "TextChapter\n(textchapters)" as TextDB
+entity   "Policies\n(policiesModel)" as PolicyDB
+entity   "ChapterModeration\n(cmModel)" as CmDB
+entity   "ModerationAction\n(logModel)" as LogDB
+
+== C. AI kiểm tra nội dung chương theo policy và lưu kết quả ==
+
+SYS -> ModSvc: 1. runAiCheck(chapterId,\n  { contentHtml?, policyVersion? })
+activate ModSvc
+
+ModSvc -> ChapterDB: 2. findById(chapterId)
+ChapterDB --> ModSvc: 3. chapter
+
+alt chapter không tồn tại
+  ModSvc --> SYS: 3.e throw NotFoundException('Chapter not found')
+  deactivate ModSvc
+else chapter tồn tại
+  ModSvc -> ChapterDB: 4. aggregate + $lookup textchapters\nmatch {_id: chapterId}
+  ChapterDB -> TextDB: 4.1 find textchapters by chapter_id
+  TextDB --> ChapterDB: 4.2 texts[0].content (html)
+  ChapterDB --> ModSvc: 4.3 record{ title, texts[].content }
+
+  ModSvc -> PolicyDB: 5. find({status:'Active', isPublic:true,\n subCategory:'posting'})
+  PolicyDB --> ModSvc: 6. policies[]
+
+  ModSvc -> Gemini: 7. check({\n  chapterTitle: record.title || chapter.title || 'Untitled',\n  chapterHtml: htmlFromDb,\n  policies,\n  policyVersion\n})
+  activate Gemini
+
+  Gemini -> Gemini: 8. sanitizeHtml + strip tags\n8.1 compute content_hash (sha256)\n8.2 gọi GoogleGenerativeAI.generateContent()
+  Gemini --> ModSvc: 9. GeminiCheckOutput\n{status,risk_score,labels,\n ai_findings, policy_version, content_hash}
+  deactivate Gemini
+
+  ModSvc -> ModSvc: 10. map ai_findings → FindingDto[]\n(sectionId, verdict: 'pass|warn|block', rationale)
+
+  ModSvc -> CmDB: 11. updateOne({chapter_id}, {\n $set: {\n  status: out.status,\n  risk_score: out.risk_score,\n  labels: out.labels,\n  policy_version: out.policy_version,\n  ai_model: GEMINI_MODEL,\n  ai_findings: findingsDto,\n  content_hash: out.content_hash ?? chapter.last_content_hash ?? ''\n }\n})
+  CmDB --> ModSvc: 12. ok
+
+  ModSvc -> ChapterDB: 13. updateOne({_id: chapterId}, {\n $set: {\n  ai_checked: true,\n  ai_verdict: (out.status == 'AI_PASSED' ? 'PASSED' : out.status == 'AI_WARN' ? 'WARN' : 'BLOCK'),\n  risk_score: out.risk_score,\n  policy_version: out.policy_version,\n  last_content_hash: out.content_hash\n }\n})
+  ChapterDB --> ModSvc: 14. ok
+
+  ModSvc -> LogDB: 15. create ModerationAction\n{chapter_id, action:'ai_check',\n result:{status:out.status, risk_score:out.risk_score},\n policy_version: out.policy_version, ai_model: GEMINI_MODEL}
+  LogDB --> ModSvc: 16. ok
+
+  ModSvc --> SYS: 17. { ok:true, verdict: (PASSED/WARN/BLOCK) }
+  deactivate ModSvc
+end
+
+note over ModSvc,ChapterDB
+Sau bước C, mọi nơi khác (Admin Workspace,\nQueue, trang Edit Chapter...) chỉ cần đọc\nChapterModeration + Chapter.ai_verdict\nlà thấy kết quả AI cho chapter này.
+end note
+@enduml

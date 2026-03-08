@@ -1,0 +1,23 @@
+bottomparticipants
+
+title Subsequence - Update user verify code
+
+control AuthService
+control UserService
+entity UserModel
+database MongoDB
+
+AuthService -> UserService: 1. Update user verify code
+activate AuthService
+activate UserService
+UserService -> UserModel: 2. update user verify code
+activate UserModel
+UserModel -> MongoDB: 3. update user verify code
+activate MongoDB
+MongoDB --> UserModel: 4. Return result
+deactivate MongoDB
+UserModel --> UserService: 5. Update success / error
+deactivate UserModel
+UserService --> AuthService: 6. Result
+deactivate UserService
+deactivate AuthService

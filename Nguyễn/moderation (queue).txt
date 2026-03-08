@@ -1,0 +1,84 @@
+@startuml
+actor Admin as AD
+boundary "ModerationQueue (FE)" as FE
+
+' ==== MODERATION QUEUE API ====
+boundary "ModerationController (NestJS)" as ModCtrl
+control  "ModerationService" as ModSvc
+entity   "ChapterModerationModel" as CmDB
+
+' ==== JOINS ====
+entity   "ChapterModel" as ChapterDB
+entity   "MangaModel" as MangaDB
+entity   "UserModel" as UserDB
+database "MongoDB" as DB
+
+== Roll 92 — Admin — Moderation Queue ==
+== [1] Initial load queue (status = null) ==
+
+AD -> FE: 1. Open /admin/moderation/queue
+FE -> FE: 2. Init state\n{selectedItems=∅, filters{search:\"\",status=null,risk[0,100]},\n data=[], loading=false, err=null}
+
+FE -> FE: 3. useEffect (deps: filters.status)\nsetLoading(true), setErr(null)
+FE -> ModCtrl: 4. GET /moderation/queue (no status, withCredentials)
+activate ModCtrl
+ModCtrl -> ModSvc: 4.1 listQueue({status: undefined, limit: undefined})
+activate ModSvc
+ModSvc -> CmDB: 4.2 aggregate pipeline
+activate CmDB
+CmDB -> DB: 4.3 $match {}, $sort{risk_score,updatedAt}, $limit 50
+DB --> CmDB: 4.4 rows (ChapterModeration[])
+CmDB -> DB: 4.5 $lookup chapters by chapter_id\n$lookup mangas by manga_id\n$lookup users by authorId
+DB --> CmDB: 4.6 joined documents
+deactivate CmDB
+CmDB --> ModSvc: 4.7 rows[{chapter_id,status,risk_score,labels,\n chapterTitle,authorName,updatedAt}]
+ModSvc --> ModCtrl: 4.8 rows
+deactivate ModSvc
+ModCtrl --> FE: 4.9 JSON rows[]
+deactivate ModCtrl
+
+FE -> FE: 5. mapQueueRow() → QueueItem[]{chapterId,title,author,\n risk_score,ai_status,labels,updatedAt}
+FE -> FE: 6. setData(queueItems), setLoading(false)
+FE -> FE: 7. filteredItems = data (search=\"\", risk=[0,100])
+FE -> AD: 8. Render header + QueueFilters + QueueTable
+
+alt Error loading queue
+  ModCtrl --> FE: 4.e 4xx/5xx
+  FE -> FE: 4.e.1 setErr("Load queue failed"), setLoading(false)
+  FE -> AD: 4.e.2 Show error text trong subtitle
+end
+
+== [2] Change AI Status (refetch từ BE) ==
+
+AD -> FE: 9. Chọn AI Status (ví dụ: AI_WARN)
+FE -> FE: 9.1 QueueFilters setStatus("AI_WARN")\nupdate filters.status
+
+FE -> FE: 10. useEffect (filters.status changed)\nsetLoading(true), setErr(null)
+FE -> ModCtrl: 11. GET /moderation/queue?status=AI_WARN
+activate ModCtrl
+ModCtrl -> ModSvc: 11.1 listQueue({status:"AI_WARN", limit: undefined})
+activate ModSvc
+ModSvc -> CmDB: 11.2 aggregate\n$match {status:"AI_WARN"} + $sort + $limit + $lookup...
+CmDB -> DB: 11.3 query + joins
+DB --> CmDB: 11.4 rows (only WARN)
+deactivate CmDB
+CmDB --> ModSvc: 11.5 rows
+ModSvc --> ModCtrl: 11.6 rows
+deactivate ModSvc
+ModCtrl --> FE: 11.7 JSON rows[]
+deactivate ModCtrl
+
+FE -> FE: 11.8 mapQueueRow() → QueueItem[]
+FE -> FE: 11.9 setData(newItems), setLoading(false)
+FE -> FE: 12. filteredItems = apply search + riskRange trên newItems
+FE -> AD: 13. Update header + table
+
+== [3] Reset filters (status → null) ==
+
+AD -> FE: 14. Click Reset trên QueueFilters
+FE -> FE: 14.1 Reset local state\nsearch="", status="all", riskRange=[0,100]
+FE -> FE: 14.2 onFiltersChange({search:"",status:null,riskRange[0,100]})
+FE -> FE: 14.3 update filters (status=null)
+
+FE -> FE: 15. useEffect (filters.status changed)\nrefetch queue (như bước 3–7)
+@enduml

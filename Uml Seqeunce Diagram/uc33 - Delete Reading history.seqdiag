@@ -1,0 +1,56 @@
+bottomparticipants
+
+actor User
+boundary "Reading History Page (UI)" as UI
+boundary Router
+control ChapterController
+control ChapterService
+entity HistoryModel
+database MongoDB
+
+User -> UI: 1. Click delete story history
+activate User
+activate UI
+
+UI -> Router: 2. DELETE /history/{userId}/{storyId}
+activate Router
+
+Router -> ChapterController: 3. deleteStoryHistory()
+activate ChapterController
+
+ChapterController -> ChapterController: 4. Parse params & convert ObjectId
+activate ChapterController
+space
+deactivate ChapterController
+
+ChapterController -> ChapterService: 5. deleteStoryHistory(userId, storyId)
+
+activate ChapterService
+ChapterService -> HistoryModel: 6. deleteOne({user_id, story_id})
+activate HistoryModel
+
+HistoryModel -> MongoDB: 7. Delete history record
+activate MongoDB
+MongoDB --> HistoryModel: 8. Delete result (deletedCount)
+deactivate MongoDB
+
+HistoryModel --> ChapterService: 9. Deletion result
+deactivate HistoryModel
+
+opt No history found
+    ChapterService --> ChapterController: 9.1. Return message: No history found
+    ChapterController --> Router: 9.2. HTTP response
+    Router --> UI: 9.3. Show result message
+    UI --> User: 9.4. Display notification
+end
+
+ChapterService --> ChapterController: 10. Return message: History deleted successfully
+deactivate ChapterService
+
+ChapterController --> Router: 11. HTTP response
+deactivate ChapterController
+Router --> UI: 12. Show result message
+deactivate Router
+UI --> User: 13. Display notification
+deactivate UI
+deactivate User

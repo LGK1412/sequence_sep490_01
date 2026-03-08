@@ -1,0 +1,102 @@
+bottomparticipants
+
+actor "User/Author" as User
+boundary "Chapter Comments UI" as UI
+boundary Router
+control ReportsController
+control AccessTokenGuard
+control RolesGuard
+control ValidationPipe
+control ReportsService
+entity ReportsModel
+database MongoDB
+
+User -> UI: 1. Click "Report" on comment + open dialog
+activate User
+activate UI
+
+UI -> Router: 4. POST /reports (targetType=Comment, targetId, reason, description)
+activate Router
+
+Router -> AccessTokenGuard: 5. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid / expired
+  AccessTokenGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 401 Unauthorized
+  UI --> User: 5.3. Show error message
+end
+
+AccessTokenGuard --> Router: 6. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 7. checkRole(USER, AUTHOR)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 7.1. Deny
+  Router --> UI: 7.2. 403 Forbidden
+  UI --> User: 7.3. Show error message
+end
+
+RolesGuard --> Router: 8. Allow
+deactivate RolesGuard
+
+Router -> ReportsController: 9. create(dto)
+activate ReportsController
+
+ReportsController -> ValidationPipe: 10. validate(CreateReportDto)
+activate ValidationPipe
+
+opt DTO invalid
+  ValidationPipe --> ReportsController: 10.1. Throw 400 Bad Request
+  ReportsController --> Router: 10.2. HTTP 400
+  Router --> UI: 10.3. Validation failed
+  UI --> User: 10.4. Show error message
+end
+
+ValidationPipe --> ReportsController: 11. DTO valid
+deactivate ValidationPipe
+
+ReportsController -> ReportsService: 12. create(body)
+activate ReportsService
+
+ReportsService -> ReportsService: 13. Cast reporterId & targetId to ObjectId
+activate ReportsService
+space
+deactivate ReportsService
+
+ReportsService -> ReportsModel: 14. create(report)
+activate ReportsModel
+ReportsModel -> MongoDB: 15. insert document (status="new")
+activate MongoDB
+
+opt DB error
+  MongoDB --> ReportsModel: 15.1. Error
+  ReportsModel --> ReportsService: 15.2. Throw error
+  ReportsService --> ReportsController: 15.3. HTTP 500
+  ReportsController --> Router: 15.4. Server error
+  Router --> UI: 15.5. Create failed
+  UI --> User: 15.6. Show error message
+end
+
+MongoDB --> ReportsModel: 16. Saved document
+deactivate MongoDB
+
+ReportsModel --> ReportsService: 17. Created report
+deactivate ReportsModel
+
+ReportsService --> ReportsController: 18. Created report
+deactivate ReportsService
+
+ReportsController --> Router: 19. HTTP 201 response
+deactivate ReportsController
+
+Router --> UI: 20. Return created report
+deactivate Router
+
+UI --> User: 21. Show success + close dialog
+deactivate UI
+deactivate User
+
+@enduml

@@ -1,0 +1,54 @@
+bottomparticipants
+
+actor User
+boundary "Manga Rating Form (UI)" as UI
+boundary Router
+control RatingController
+control RatingService
+entity RatingModel
+database MongoDB
+
+User -> UI: 1. Submit rating & comment
+activate User
+activate UI
+
+UI -> Router: 2. POST /rating/upsert
+activate Router
+
+Router -> RatingController: 3. upsert()
+activate RatingController
+
+loop mangaId missing / Invalid mangaId / Rating missing / Comment missing
+    RatingController --> Router: 3.1. Return 400 Bad Request
+    Router --> UI: 3.2. Return 400 Bad Request
+    UI --> User: 3.3. Show error message
+end
+
+RatingController -> RatingService: 4. Call upsertRating
+
+activate RatingService
+opt Rating out of range
+    RatingService --> RatingController: 4.1. Error (Rating out of range)
+    RatingController --> Router: 4.2. Return 400 Bad Request
+    Router --> UI: 4.3. Return 400 Bad Request
+    UI --> User: 4.4. Show error message
+end
+
+RatingService -> RatingModel: 5. Update rating
+activate RatingModel
+RatingModel -> MongoDB: 6. Upsert rating document
+activate MongoDB
+MongoDB --> RatingModel: 7. Return rating document
+deactivate MongoDB
+RatingModel --> RatingService: 8. Rating result
+deactivate RatingModel
+RatingService --> RatingController: 9. Return rating document
+deactivate RatingService
+
+RatingController --> Router: 10. HTTP response (success)
+deactivate RatingController
+Router --> UI: 11. Show rating result
+deactivate Router
+UI --> User: 12. Rating saved
+deactivate UI
+deactivate User

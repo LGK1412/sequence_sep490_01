@@ -1,0 +1,155 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Staff
+boundary "ReportsPage / ReportDetail UI" as UI
+boundary Router
+control ReportsController
+control ReportsService
+entity ReportsModel
+entity UsersModel
+entity MangaModel
+entity ChaptersModel
+entity CommentsModel
+entity RepliesModel
+database MongoDB
+
+Staff -> UI: 1. Click "View" on report row
+activate Staff
+activate UI
+
+UI -> UI: 2. Open modal (show basic info)
+activate UI
+UI -> Router: 3. GET /api/reports/{id}
+deactivate UI
+activate Router
+
+Router -> ReportsController: 4. findOne(id, role)
+activate ReportsController
+
+ReportsController -> ReportsService: 5. findOneForRole(id, role)
+activate ReportsService
+
+ReportsService -> ReportsModel: 6. findById(id) + populate(reporter_id, target_id)
+activate ReportsModel
+ReportsModel -> MongoDB: 7. query report + populate refs
+activate MongoDB
+MongoDB --> ReportsModel: 8. reportDoc / null
+deactivate MongoDB
+ReportsModel --> ReportsService: 9. reportDoc
+deactivate ReportsModel
+
+alt target_type == Manga
+  ReportsService -> MangaModel: 9.1. findById(target_id)
+  activate MangaModel
+  MangaModel -> MongoDB: 9.2. query manga
+  activate MongoDB
+  MongoDB --> MangaModel: 9.3. manga
+  deactivate MongoDB
+  MangaModel --> ReportsService: 9.4. manga
+  deactivate MangaModel
+
+  ReportsService -> UsersModel: 9.5. findById(manga.authorId)
+  activate UsersModel
+  UsersModel -> MongoDB: 9.6. query author
+  activate MongoDB
+  MongoDB --> UsersModel: 9.7. author
+  deactivate MongoDB
+  UsersModel --> ReportsService: 9.8. author
+  deactivate UsersModel
+
+else target_type == Chapter
+  ReportsService -> ChaptersModel: 9.9. findById(target_id)
+  activate ChaptersModel
+  ChaptersModel -> MongoDB: 9.10. query chapter
+  activate MongoDB
+  MongoDB --> ChaptersModel: 9.11. chapter
+  deactivate MongoDB
+  ChaptersModel --> ReportsService: 9.12. chapter
+  deactivate ChaptersModel
+
+  ReportsService -> MangaModel: 9.13. findById(chapter.manga_id)
+  activate MangaModel
+  MangaModel -> MongoDB: 9.14. query manga
+  activate MongoDB
+  MongoDB --> MangaModel: 9.15. manga
+  deactivate MongoDB
+  MangaModel --> ReportsService: 9.16. manga
+  deactivate MangaModel
+
+  ReportsService -> UsersModel: 9.17. findById(manga.authorId)
+  activate UsersModel
+  UsersModel -> MongoDB: 9.18. query author
+  activate MongoDB
+  MongoDB --> UsersModel: 9.19. author
+  deactivate MongoDB
+  UsersModel --> ReportsService: 9.20. author
+  deactivate UsersModel
+
+else target_type == Comment
+  ReportsService -> CommentsModel: 9.21. findById(target_id)
+  activate CommentsModel
+  CommentsModel -> MongoDB: 9.22. query comment
+  activate MongoDB
+  MongoDB --> CommentsModel: 9.23. comment
+  deactivate MongoDB
+  CommentsModel --> ReportsService: 9.24. comment
+  deactivate CommentsModel
+
+  ReportsService -> UsersModel: 9.25. findById(comment.user_id)
+  activate UsersModel
+  UsersModel -> MongoDB: 9.26. query user
+  activate MongoDB
+  MongoDB --> UsersModel: 9.27. user
+  deactivate MongoDB
+  UsersModel --> ReportsService: 9.28. user
+  deactivate UsersModel
+
+else target_type == Reply
+  ReportsService -> RepliesModel: 9.29. findById(target_id)
+  activate RepliesModel
+  RepliesModel -> MongoDB: 9.30. query reply
+  activate MongoDB
+  MongoDB --> RepliesModel: 9.31. reply
+  deactivate MongoDB
+  RepliesModel --> ReportsService: 9.32. reply
+  deactivate RepliesModel
+
+  ReportsService -> UsersModel: 9.33. findById(reply.user_id)
+  activate UsersModel
+  UsersModel -> MongoDB: 9.34. query user
+  activate MongoDB
+  MongoDB --> UsersModel: 9.35. user
+  deactivate MongoDB
+  UsersModel --> ReportsService: 9.36. user
+  deactivate UsersModel
+end
+
+ReportsService --> ReportsController: 10. reportDetail
+deactivate ReportsService
+
+ReportsController --> Router: 11. 200 OK + reportDetail
+deactivate ReportsController
+
+Router --> UI: 12. reportDetail
+deactivate Router
+
+UI -> UI: 13. setSelectedReport(reportDetail)
+activate UI
+UI --> Staff: 14. Show result
+deactivate UI
+deactivate UI
+deactivate Staff
+
+@enduml

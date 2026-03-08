@@ -1,0 +1,39 @@
+bottomparticipants
+
+actor User
+boundary "Avatar Menu" as UI
+boundary Router
+control AuthController
+
+User -> UI: 1. Click Logout
+activate User
+activate UI
+
+UI -> Router: 2. POST /api/auth/logout (cookie)
+activate Router
+
+loop Invalid / expired token
+  Router --> UI: 2.1. Show error
+  UI --> User: 2.2. Logout failed
+end
+
+Router -> AuthController: 3. logout()
+activate AuthController
+
+AuthController -> Router: 4. res.cookie(access_token=\"\", maxAge=0)
+
+opt Exception while clearing cookie
+  AuthController --> Router: 4.1 400 BadRequest
+  Router --> UI: 4.2 Show error
+  UI --> User: 4.3 Logout failed
+end
+
+AuthController --> Router: 5. { success:true }
+deactivate AuthController
+
+Router --> UI: 6. Logout response
+deactivate Router
+
+UI --> User: 7. Redirect login
+deactivate UI
+deactivate User

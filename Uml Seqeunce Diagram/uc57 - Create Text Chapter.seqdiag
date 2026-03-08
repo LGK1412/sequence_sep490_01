@@ -1,23 +1,11 @@
-@startuml
-skinparam {
-    ActorBackgroundColor #FFFFFF
-    BoundaryBackgroundColor #FFFFFF
-    ControlBackgroundColor #FFFFFF
-    EntityBackgroundColor #FFFFFF
-    DatabaseBackgroundColor #FFFFFF
-
-    ActorBorderColor black
-    BoundaryBorderColor black
-    ControlBorderColor black
-    EntityBorderColor black
-    DatabaseBorderColor black
-}
+bottomparticipants
 
 actor Author
 boundary "Create Chapter UI" as UI
 boundary Router
 control TextChapterController
 control TextChapterService
+control ModerationListener
 entity TextChapterModel
 entity TextTextChapterModel
 entity MangaModel
@@ -90,14 +78,17 @@ deactivate MongoDB
 MangaModel --> TextChapterService: 20. Return achievement
 deactivate MangaModel
 
-TextChapterService --> TextChapterController: 21. {chapter, text}
+ref over TextChapterService, MongoDB: 21. Subseqeunce - Add to queue for AI check policies
+
+ref over TextChapterService, MongoDB: 22. Subseqeunce - AI check policies
+
+TextChapterService --> TextChapterController: 23. {chapter, text}
 deactivate TextChapterService
 
-TextChapterController --> Router: 22. HTTP 201 Created
+TextChapterController --> Router: 24. HTTP 201 Created
 deactivate TextChapterController
-Router --> UI: 23. Create success
+Router --> UI: 25. Create success
 deactivate Router
-UI --> Author: 24. See new chapter
+UI --> Author: 26. See new chapter
 deactivate UI
 deactivate Author
-@enduml

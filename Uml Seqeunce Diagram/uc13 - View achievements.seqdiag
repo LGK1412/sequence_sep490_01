@@ -1,0 +1,50 @@
+bottomparticipants
+
+actor User
+boundary "Achievements Page" as UI
+boundary Router
+control AchievementController
+control AchievementService
+entity AchievementProgressModel
+database MongoDB
+
+User -> UI: 1. Open My Achievements
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/achievement/me
+activate Router
+
+Router -> AchievementController: 3. getAchievementsForStudent()
+activate AchievementController
+
+AchievementController -> AchievementService: 4. getAllWithProgress(userId)
+activate AchievementService
+
+opt Invalid user
+  AchievementService --> AchievementController: 4.1. BadRequestException
+  AchievementController --> Router: 4.2. HTTP error
+  Router --> UI: 4.3. HTTP error
+  UI --> User: 4.4. Show error
+end
+
+AchievementService -> AchievementProgressModel: 5. find(userId)
+activate AchievementProgressModel
+AchievementProgressModel -> MongoDB: 6. query achievement progress
+activate MongoDB
+MongoDB --> AchievementProgressModel: 7. return data
+deactivate MongoDB
+AchievementProgressModel --> AchievementService: 8. progress list
+deactivate AchievementProgressModel
+
+AchievementService --> AchievementController: 9. return achievements 
+deactivate AchievementService
+
+AchievementController --> Router: 10. HTTP response
+deactivate AchievementController
+
+Router --> UI: 11. Response data
+deactivate Router
+UI --> User: 12. Show achievements & progress
+deactivate UI
+deactivate User

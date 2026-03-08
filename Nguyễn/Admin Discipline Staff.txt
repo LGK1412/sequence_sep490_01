@@ -1,0 +1,152 @@
+@startuml
+title UC - Admin Discipline Staff (Ban/Mute CM/Commu) (/api/user/update-status)
+
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin as AD
+
+boundary "UserManagement UI (FE)\n(Edit User Dialog)" as UI
+boundary "Router" as Router
+
+control "AccessTokenGuard" as ATG
+control "RolesGuard" as RG
+control "@Roles(ADMIN)" as Roles
+
+control "NestJS\nUserController" as Ctrl
+control "UserService" as Svc
+
+control "AuditLogService" as AuditSvc
+
+entity "Mongoose\nUserModel (userModel)" as UserModel
+entity "Mongoose\nAuditLogModel" as AuditModel
+database "MongoDB" as DB
+
+AD -> UI: 1. Open staff detail\n(Content Moderator / Community Manager)
+UI -> UI: 2. Choose status (ban/mute/normal)\n+ submit
+
+UI -> UI: 3. Client validate\n(selectedUserId, status)
+
+opt 3.1 Client validation failed
+  UI --> AD: 3.1.1 Show inline error
+end
+
+UI -> Router: 4. POST /api/user/update-status\n{ userId, status }\n(withCredentials=true)
+activate Router
+
+Router -> ATG: 5. canActivate(request)
+activate ATG
+
+alt 5.1 Token invalid / missing
+  ATG --> Router: 5.1.1 Deny
+  Router --> UI: 5.1.2 401 Unauthorized
+  UI --> AD: 5.1.3 Show error toast
+else 5.2 Token valid
+  ATG --> Router: 5.2.1 Allow
+
+  Router -> RG: 6. checkRole(ADMIN)
+  activate RG
+
+  alt 6.1 Role not ADMIN
+    RG --> Router: 6.1.1 Deny
+    Router --> UI: 6.1.2 403 Forbidden
+    UI --> AD: 6.1.3 Show error toast
+  else 6.2 Role ok
+    RG --> Router: 6.2.1 Allow
+
+    Router -> Ctrl: 7. updateStatus(userId, status, req)
+    activate Ctrl
+
+    Ctrl -> Roles: 8. require ADMIN
+    Roles --> Ctrl: 8.1 ok/deny (implicit)
+
+    Ctrl -> Ctrl: 9. extract adminId from req.user
+    Ctrl -> Svc: 10. adminUpdateStaffStatus(adminId, userId, status)
+    activate Svc
+
+    Svc -> Svc: 11. validate status enum\n(normal|ban|mute)
+    alt 11.1 Invalid status
+      Svc --> Ctrl: 11.1.1 throw BadRequestException
+      Ctrl --> Router: 11.1.2 400 Bad Request
+      Router --> UI: 11.1.3 error response
+      UI --> AD: 11.1.4 Toast error
+    else 11.2 Status ok
+      Svc -> UserModel: 12. findById(userId)\nselect(role,status,username,email)
+      activate UserModel
+      UserModel -> DB: 13. query user by _id
+      DB --> UserModel: 14. target | null
+      deactivate UserModel
+
+      alt 15. Target not found
+        Svc --> Ctrl: 15.1 throw NotFoundException
+        Ctrl --> Router: 15.2 404 Not Found
+        Router --> UI: 15.3 error response
+        UI --> AD: 15.4 Toast "User does not exist"
+      else 16. Target found
+        Svc -> Svc: 16.1 assert target role is\nCONTENT_MODERATOR or COMMUNITY_MANAGER
+        alt 16.2 Target is not staff
+          Svc --> Ctrl: 16.2.1 throw BadRequestException
+          Ctrl --> Router: 16.2.2 400 Bad Request
+          Router --> UI: 16.2.3 error response
+          UI --> AD: 16.2.4 Toast "Admin can only ban/mute staff"
+        else 16.3 Target is staff
+          Svc -> UserModel: 17. updateOne({_id}, {$set:{status}})
+          activate UserModel
+          UserModel -> DB: 18. update status
+          DB --> UserModel: 19. modifiedCount / matchedCount
+          deactivate UserModel
+
+          alt 19.1 Update failed (modifiedCount=0)
+            Svc --> Ctrl: 19.1.1 throw BadRequestException
+            Ctrl --> Router: 19.1.2 400 Bad Request
+            Router --> UI: 19.1.3 error response
+            UI --> AD: 19.1.4 Toast "Unable to update status"
+          else 19.2 Update success
+            Svc -> UserModel: 20. getActorSnapshot(adminId)\n(select username,email,role)
+            activate UserModel
+            UserModel -> DB: 21. query admin snapshot
+            DB --> UserModel: 22. admin snapshot
+            deactivate UserModel
+
+            opt 23. Audit logging (recommended)
+              Svc -> AuditSvc: 23.1 createLog(...)
+              activate AuditSvc
+              AuditSvc -> AuditModel: 23.2 insert audit row
+              activate AuditModel
+              AuditModel -> DB: 23.3 insert audit doc
+              DB --> AuditModel: 23.4 saved
+              deactivate AuditModel
+              deactivate AuditSvc
+            end
+
+            Svc --> Ctrl: 24. { success:true, message:"Status updated successfully" }
+            Ctrl --> Router: 25. 200 OK
+            Router --> UI: 26. response
+            UI -> UI: 27. update table state\n(selectedUser.status = newStatus)
+            UI --> AD: 28. Toast "Status updated successfully"
+          end
+        end
+      end
+    end
+
+    deactivate Svc
+    deactivate Ctrl
+  end
+
+  deactivate RG
+end
+
+deactivate ATG
+deactivate Router
+@enduml

@@ -1,0 +1,44 @@
+deactivate MangaService
+
+actor User
+boundary "Reading History" as UI
+boundary Router
+control ChapterController
+control ChapterService
+entity HistoryModel
+database MongoDB
+
+User -> UI: 1. Request last read chapter
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/chapter/history/{userId}/{storyId}
+activate Router
+
+Router -> ChapterController: 3. get last read chapter
+activate ChapterController
+
+ChapterController -> ChapterService: 4. get last read chapter
+activate ChapterService
+
+ChapterService -> HistoryModel: 5. get history
+activate HistoryModel
+HistoryModel -> MongoDB: 6. query history
+activate MongoDB
+MongoDB --> HistoryModel: 7. return history
+deactivate MongoDB
+
+HistoryModel --> ChapterService: 8. return result
+deactivate HistoryModel
+
+ChapterService --> ChapterController: 9. return result
+deactivate ChapterService
+
+ChapterController --> Router: 10. HTTP response
+deactivate ChapterController
+
+Router --> UI: 11. Response data
+deactivate Router
+UI --> User: 12. Show last read chapter
+deactivate UI
+deactivate User

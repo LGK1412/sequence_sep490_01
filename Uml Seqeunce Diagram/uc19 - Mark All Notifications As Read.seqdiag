@@ -1,0 +1,50 @@
+bottomparticipants
+
+actor User
+boundary "Notification Page" as UI
+boundary Router
+control NotificationController
+control NotificationService
+entity NotificationModel
+database MongoDB
+
+User -> UI: 1. Click "Mark all as read"
+activate User
+activate UI
+
+UI -> Router: 2. PATCH /api/notification/mark-all-noti-as-read
+activate Router
+
+Router -> NotificationController: 3. markAllNotiAsRead()
+activate NotificationController
+
+NotificationController -> NotificationService: 4. markAllAsRead(payload)
+activate NotificationService
+
+opt Invalid user
+  NotificationService --> NotificationController: 4.1. BadRequestException
+  NotificationController --> Router: 4.2. HTTP error
+  Router --> UI: 4.3. Show error
+  UI --> User: 4.4. Show error
+end
+
+NotificationService -> NotificationModel: 5. updateMany(receiver_id, is_read=false)
+activate NotificationModel
+NotificationModel -> MongoDB: 6. update notifications (set is_read=true)
+activate MongoDB
+MongoDB --> NotificationModel: 7. update result
+deactivate MongoDB
+NotificationModel --> NotificationService: 8. return update result
+deactivate NotificationModel
+
+NotificationService --> NotificationController: 9. success result
+deactivate NotificationService
+
+NotificationController --> Router: 10. HTTP response
+deactivate NotificationController
+
+Router --> UI: 11. Response data
+deactivate Router
+UI --> User: 12. All notifications marked as read
+deactivate UI
+deactivate User

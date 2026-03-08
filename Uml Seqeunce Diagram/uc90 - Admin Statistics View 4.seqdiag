@@ -1,0 +1,72 @@
+bottomparticipants
+
+actor Admin
+boundary "Admin Dashboard UI" as UI
+boundary Router
+control ReportController
+control AccessTokenGuard
+control RolesGuard
+control ReportService
+entity ReportModel
+database MongoDB
+
+Admin -> UI: 1. Open Dashboard (Reports Statistics)
+activate Admin
+activate UI
+
+UI -> Router: 2. GET /reports/admin/charts/weekly-new?weeks=4
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> Admin: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> Admin: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> ReportController: 7. getWeeklyNew(weeks=4)
+activate ReportController
+
+ReportController -> ReportService: 8. getWeeklyNew(weeks)
+activate ReportService
+
+ReportService -> ReportModel: 9. Get reports
+activate ReportModel
+ReportModel -> MongoDB: 10. Get reports
+activate MongoDB
+MongoDB --> ReportModel: 11. Return result
+deactivate MongoDB
+ReportModel --> ReportService: 12. Return result
+deactivate ReportModel
+
+ReportService --> ReportController: 13. Return result
+deactivate ReportService
+
+ReportController --> Router: 14. HTTP 200 response
+deactivate ReportController
+
+Router --> UI: 15. Return weekly chart data
+deactivate Router
+
+UI --> Admin: 16. Display reports statistics
+deactivate UI
+deactivate Admin
+
+@enduml

@@ -1,0 +1,58 @@
+bottomparticipants
+
+actor User
+boundary "Chapter Comment Section (UI)" as UI
+boundary Router
+control CommentController
+control CommentService
+control ReplyService
+entity CommentModel
+database MongoDB
+
+User -> UI: 1. Open chapter comments
+activate User
+activate UI
+
+UI -> Router: 2. GET /all-comment-chapter/{chapterId}
+activate Router
+
+Router -> CommentController: 3. Call get comment
+activate CommentController
+
+opt Token Invalid
+    CommentController --> Router: 3.1. 401 Unauthorized
+    Router --> UI: 3.2. Show error
+    UI --> User: 3.3. Show error
+end
+
+CommentController -> CommentService: 4. Call get comment
+
+activate CommentService
+
+CommentService -> CommentModel: 5. Get comment
+activate CommentModel
+CommentModel --> CommentService: 6. Return comments
+deactivate CommentModel
+
+CommentService -> ReplyService: 7. Get reply count
+activate ReplyService
+ReplyService -> MongoDB: 8. Aggregate reply counts
+activate MongoDB
+MongoDB --> ReplyService: 9. replyMap
+deactivate MongoDB
+ReplyService --> CommentService: 10. Reply count data
+deactivate ReplyService
+
+CommentService -> CommentService: 11. Merge replyCount & usernames
+activate CommentService
+space
+deactivate CommentService
+CommentService --> CommentController: 12. Return comments
+deactivate CommentService
+CommentController --> Router: 13. HTTP response
+deactivate CommentController
+Router --> UI: 14. Render comments
+deactivate Router
+UI --> User: 15. View comments
+deactivate UI
+deactivate User

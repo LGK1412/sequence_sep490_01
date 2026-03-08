@@ -1,0 +1,49 @@
+bottomparticipants
+
+title Subseqeunce - AI check policies
+
+control ModerationListener
+control ModerationService
+entity ChapterModel
+entity ChapterModerationModel
+entity ModerationActionModel
+database MongoDB
+
+activate ModerationListener
+
+ModerationListener -> ModerationService: 1. submit(chapterId, actorId=undefined)
+activate ModerationService
+
+ModerationService -> ChapterModel: 2. findById(chapterId)
+activate ChapterModel
+ChapterModel -> MongoDB: 3. find document
+activate MongoDB
+MongoDB --> ChapterModel: 4. chapter | null
+deactivate MongoDB
+ChapterModel --> ModerationService: 5. return chapter
+deactivate ChapterModel
+
+opt Chapter not found
+  ModerationService --> ModerationListener: 5.1 Throw NotFoundException
+end
+
+ModerationService -> ChapterModerationModel: 6. updateOne({chapter_id}, AI_PENDING, upsert:true)
+activate ChapterModerationModel
+ChapterModerationModel -> MongoDB: 7. update document
+activate MongoDB
+MongoDB --> ChapterModerationModel: 8. updated
+deactivate MongoDB
+ChapterModerationModel --> ModerationService: 9. ok
+deactivate ChapterModerationModel
+
+ModerationService -> ModerationActionModel: 10. create({chapter_id, action:'ai_check', note:'submitted -> AI_PENDING'})
+activate ModerationActionModel
+ModerationActionModel -> MongoDB: 11. insert document
+activate MongoDB
+MongoDB --> ModerationActionModel: 12. saved
+deactivate MongoDB
+ModerationActionModel --> ModerationService: 13. created
+deactivate ModerationActionModel
+ModerationService --> ModerationListener: 14. {ok:true}
+deactivate ModerationService
+deactivate ModerationListener

@@ -1,0 +1,68 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor User
+boundary Router
+control UsersController
+control AccessTokenGuard
+control UsersService
+entity UsersModel
+database MongoDB
+
+User -> Router: 1. GET /emoji-packs-own
+activate User
+activate Router
+
+Router -> AccessTokenGuard: 2. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 2.1 Deny
+  Router --> User: 2.1.1 401 Unauthorized
+end
+
+AccessTokenGuard --> Router: 3. Allow
+deactivate AccessTokenGuard
+
+Router -> UsersController: 4. getUserEmojiPacksOwn(req)
+activate UsersController
+
+UsersController -> UsersController: 5. extract userId from req.user
+activate UsersController
+UsersController -> UsersService: 6. getEmojiPacksOwn(userId)
+deactivate UsersController
+activate UsersService
+
+UsersService -> UsersModel: 7. Finde emoji pack
+activate UsersModel
+
+UsersModel -> MongoDB: 8.  Finde emoji pack
+activate MongoDB
+MongoDB --> UsersModel: 9. Return result
+deactivate MongoDB
+
+UsersModel --> UsersService: 10. Return result
+deactivate UsersModel
+
+UsersService --> UsersController: 11. Return result
+deactivate UsersService
+
+UsersController --> Router: 12. Return result
+deactivate UsersController
+
+Router --> User: 13. Return result
+deactivate Router
+deactivate User
+
+@enduml

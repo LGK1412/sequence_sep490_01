@@ -1,0 +1,130 @@
+bottomparticipants
+
+actor "Content Moderator" as Moderator
+boundary "User Management UI" as UI
+boundary Router
+control UsersController
+control AccessTokenGuard
+control RolesGuard
+control ValidationPipe
+control UsersService
+control AuditLogService
+entity UsersModel
+database MongoDB
+
+Moderator -> UI: 1. Click "Ban", input reason, confirm
+activate Moderator
+activate UI
+UI -> Router: 3. PATCH /users/moderation/ban (userId, reason)
+activate Router
+
+Router -> AccessTokenGuard: 4. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 4.1. Deny
+  Router --> UI: 4.2. 401 Unauthorized
+  UI --> Moderator: 4.3. Show error message
+end
+
+AccessTokenGuard --> Router: 5. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 6. checkRole(CONTENT_MODERATOR)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 6.1. Deny
+  Router --> UI: 6.2. 403 Forbidden
+  UI --> Moderator: 6.3. Show error message
+end
+
+RolesGuard --> Router: 7. Allow
+deactivate RolesGuard
+
+Router -> UsersController: 8. moderatorBanUser(dto)
+activate UsersController
+
+UsersController -> ValidationPipe: 9. validate(BanUserDto)
+activate ValidationPipe
+
+opt DTO invalid
+  ValidationPipe --> UsersController: 9.1. Throw 400 Bad Request
+  UsersController --> Router: 9.2. HTTP 400
+  Router --> UI: 9.3. Validation failed
+  UI --> Moderator: 9.4. Show error message
+end
+
+ValidationPipe --> UsersController: 10. DTO valid
+deactivate ValidationPipe
+
+UsersController -> UsersService: 11. moderatorBanUser(actorId, userId, reason)
+activate UsersService
+
+UsersService -> UsersModel: 12. findById(actorId)
+activate UsersModel
+UsersModel -> MongoDB: 13. query actor
+activate MongoDB
+MongoDB --> UsersModel: 14. actor document
+deactivate MongoDB
+UsersModel --> UsersService: 15. actor
+deactivate UsersModel
+
+UsersService -> UsersModel: 16. findById(userId)
+activate UsersModel
+UsersModel -> MongoDB: 17. query target
+activate MongoDB
+MongoDB --> UsersModel: 18. target document
+deactivate MongoDB
+UsersModel --> UsersService: 19. target
+deactivate UsersModel
+
+opt Target role invalid or status != normal
+  UsersService --> UsersController: 19.1. Throw 400 Bad Request
+  UsersController --> Router: 19.2. HTTP 400
+  Router --> UI: 19.3. Ban failed
+  UI --> Moderator: 19.4. Show error message
+end
+
+UsersService -> UsersModel: 20. updateOne(status=ban)
+activate UsersModel
+UsersModel -> MongoDB: 21. update document
+activate MongoDB
+
+opt Update failed
+  MongoDB --> UsersModel: 21.1. Error / not modified
+  UsersModel --> UsersService: 21.2. Fail
+  UsersService --> UsersController: 21.3. Throw 400
+  UsersController --> Router: 21.4. HTTP 400
+  Router --> UI: 21.5. Ban failed
+  UI --> Moderator: 21.6. Show error message
+end
+
+MongoDB --> UsersModel: 22. Updated document
+deactivate MongoDB
+UsersModel --> UsersService: 23. Success
+deactivate UsersModel
+
+UsersService -> AuditLogService: 24. createLog(action="ban_user", note=reason)
+activate AuditLogService
+AuditLogService -> MongoDB: 25. insert audit log
+activate MongoDB
+MongoDB --> AuditLogService: 26. Log saved
+deactivate MongoDB
+AuditLogService --> UsersService: 27. Logged
+deactivate AuditLogService
+
+UsersService --> UsersController: 28. {success:true}
+deactivate UsersService
+
+UsersController --> Router: 29. HTTP 200 response
+deactivate UsersController
+
+Router --> UI: 30. Return success
+deactivate Router
+
+UI --> Moderator: 31. Show success + update status
+deactivate UI
+deactivate Moderator
+
+@enduml

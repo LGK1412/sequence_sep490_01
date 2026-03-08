@@ -1,0 +1,90 @@
+@startuml
+actor Admin as AD
+
+' ==== FRONTEND ====
+boundary "ModerationWorkspacePage (FE)" as FE
+control  "lib/moderation.ts\nrecheckModeration / fetchModerationRecord" as FEApi
+control  "ChapterSummary\n(ContentViewer, FindingsPanel)" as FEViews
+
+' ==== BACKEND ====
+boundary "ModerationController" as ModCtrl
+control  "ModerationService" as ModSvc
+entity   "ChapterModeration\n(cmModel)" as CmDB
+entity   "Chapter" as ChapterDB
+entity   "TextChapter" as TextDB
+entity   "Policies" as PolicyDB
+entity   "ModerationAction\n(logModel)" as LogDB
+control  "GeminiModerator" as Gemini
+
+== Roll 93C — Recheck with AI ==
+
+AD -> FEViews: 1. Click "Recheck with AI"
+FEViews -> FEViews: 2. setIsRunningAI(true)
+FEViews -> FE: 3. onRecheck()
+FE -> FE: 4. setActLoading(true)
+
+FE -> FEApi: 5. recheckModeration(record.chapterId)
+activate FEApi
+FEApi -> ModCtrl: 6. POST /moderation/recheck\n{chapterId}
+activate ModCtrl
+ModCtrl -> ModSvc: 6.1 recheck(dto, adminId)
+activate ModSvc
+
+ModSvc -> ChapterDB: 6.2 findById(chapterId)
+ChapterDB --> ModSvc: 6.3 chapter
+
+' Reset record -> AI_PENDING
+ModSvc -> CmDB: 6.4 updateOne({chapter_id}, {$set: {\n status:'AI_PENDING', risk_score:0,\n labels:[], ai_findings:[], ai_model:null,\n policy_version, content_hash}})
+CmDB --> ModSvc: 6.5 ok
+
+ModSvc -> LogDB: 6.6 create ModerationAction\n{action:'recheck', actor_id, policy_version}
+LogDB --> ModSvc: 6.7 ok
+
+' Fire-and-forget AI chạy nền
+ModSvc -> ModSvc: 6.8 setImmediate(() => runAiCheck(chapterId,...))
+
+ModSvc --> ModCtrl: 6.9 { ok:true, started:true }
+deactivate ModSvc
+ModCtrl --> FEApi: 7. HTTP 200
+deactivate ModCtrl
+FEApi --> FE: 8. resolve
+deactivate FEApi
+
+FE -> FEApi: 9. fetchModerationRecord(chapterId)\n→ thấy status = AI_PENDING
+FEApi --> FE: 10. rec (status=AI_PENDING, risk=0)
+FE -> FEViews: 11. setRecord(rec), setActLoading(false), setIsRunningAI(false)
+FEViews --> AD: 12. UI hiển thị Pending / risk=0
+
+== [C.1] AI chạy nền (runAiCheck) ==
+
+ModSvc -> ChapterDB: 13. findById(chapterId)
+ChapterDB --> ModSvc: 14. chapter
+
+ModSvc -> ChapterDB: 15. aggregate + $lookup textchapters
+ChapterDB -> TextDB: 16. get texts.content
+TextDB --> ChapterDB: 17. html
+ChapterDB --> ModSvc: 18. record{title, texts[].content}
+
+ModSvc -> PolicyDB: 19. find posting policies\n{status:'Active', isPublic:true, subCategory:'posting'}
+PolicyDB --> ModSvc: 20. policies[]
+
+ModSvc -> Gemini: 21. check({chapterTitle, chapterHtml, policies, policyVersion})
+activate Gemini
+Gemini -> Gemini: 22. sanitize HTML + compute hash\n→ GEMINI API generateContent()
+Gemini --> ModSvc: 23. GeminiCheckOutput\n{status,risk_score,labels,ai_findings,policy_version,content_hash}
+deactivate Gemini
+
+ModSvc -> CmDB: 24. updateOne({chapter_id}, {$set:{\n status,risk_score,labels,\n policy_version,ai_model,ai_findings,content_hash}})
+CmDB --> ModSvc: 25. ok
+
+' Sync verdict lên Chapter
+ModSvc -> ChapterDB: 26. updateOne({_id}, {$set:{\n ai_checked:true,\n ai_verdict:(PASSED/WARN/BLOCK),\n risk_score, policy_version, last_content_hash\n}})
+ChapterDB --> ModSvc: 27. ok
+
+ModSvc -> LogDB: 28. create ModerationAction\n{action:'ai_check', result:{status,risk_score}, ai_model}
+LogDB --> ModSvc: 29. ok
+
+ModSvc --> ModSvc: 30. return { ok:true, verdict }
+
+' Lần sau FE reload Workspace / Queue → thấy status & risk mới
+@enduml

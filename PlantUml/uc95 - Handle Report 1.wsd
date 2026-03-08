@@ -1,0 +1,109 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Staff
+boundary "ReportsPage UI" as UI
+boundary Router
+control ReportsController
+control AccessTokenGuard
+control RolesGuard
+control ReportsService
+entity ReportsModel
+database MongoDB
+
+Staff -> UI: 1. Choose status + resolution note
+activate Staff
+activate UI
+
+UI -> UI: 2. setLoading(true)
+
+UI -> Router: 3. PUT /api/reports/:id/moderate
+activate Router
+
+Router -> AccessTokenGuard: 4. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 4.1 Deny
+  Router --> UI: 4.2. 401 Unauthorized
+  UI --> Staff: 4.3. Show error
+end
+
+AccessTokenGuard --> Router: 5. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 6. checkRole(ADMIN|CONTENT_MODERATOR|COMMUNITY_MANAGER)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 6.1 Deny
+  Router --> UI: 6.2. 403 Forbidden
+  UI --> Staff: 6.3. Show error
+end
+
+RolesGuard --> Router: 7. Allow
+deactivate RolesGuard
+
+Router -> ReportsController: 8. moderate(id, dto, req.user)
+activate ReportsController
+
+ReportsController -> ReportsService: 9. updateByStaff(id, dto, user)
+activate ReportsService
+
+ReportsService -> ReportsModel: 10. findById(id)
+activate ReportsModel
+ReportsModel -> MongoDB: 11. query {_id:id}
+activate MongoDB
+MongoDB --> ReportsModel: 12. beforeDoc / null
+deactivate MongoDB
+ReportsModel --> ReportsService: 13. beforeDoc
+deactivate ReportsModel
+
+opt Report not found
+  ReportsService --> ReportsController: 13.1 Throw NotFoundException
+  ReportsController --> Router: 13.2 404 Not Found
+  Router --> UI: 13.3 Error response
+  UI --> Staff: 13.4 Show error + setLoading(false)
+end
+
+ReportsService -> ReportsService: 14. Ensure Can Access Report
+activate ReportsService
+ReportsService -> ReportsModel: 15. findByIdAndUpdate(id, payload, {new:true})
+deactivate ReportsService
+activate ReportsModel
+ReportsModel -> MongoDB: 16. update + return updated
+activate MongoDB
+MongoDB --> ReportsModel: 17. updatedReport
+deactivate MongoDB
+ReportsModel --> ReportsService: 18. updatedReport
+deactivate ReportsModel
+
+ReportsService -> ReportsService: 19. createLog(action=report_update)
+activate ReportsService
+ReportsService --> ReportsController: 20. updatedReport
+deactivate ReportsService
+deactivate ReportsService
+
+ReportsController --> Router: 21. 200 OK + updatedReport
+deactivate ReportsController
+
+Router --> UI: 22. updatedReport
+deactivate Router
+
+UI --> Staff: 23. Show success
+
+deactivate UI
+deactivate Staff
+
+@enduml

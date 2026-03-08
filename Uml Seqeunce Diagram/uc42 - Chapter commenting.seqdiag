@@ -1,0 +1,94 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Chapter Comment Form (UI)" as UI
+boundary Router
+control CommentController
+control CommentService
+control ChapterService
+control MangaService
+control UserService
+control NotificationService
+entity CommentModel
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Write comment & submit
+activate User
+activate UI
+
+UI -> Router: 2. POST /create-comment
+activate Router
+
+Router -> CommentController: 3. createCommentChapter()
+activate CommentController
+
+opt Token Invalid
+    CommentController --> Router: 3.1. 401 Unauthorized
+    Router --> UI: 3.2. Show error
+    UI --> User: 3.3. Show error
+end
+
+CommentController -> CommentService: 5. createCommentChapter(dto, payload)
+activate CommentService
+
+ref over User, MongoDB: 6. Subsequence - Chapter commenting 1
+
+CommentService -> ChapterService: 7. getChapterById(chapterId)
+activate ChapterService
+ChapterService -> MongoDB: 8. Find chapter
+activate MongoDB
+MongoDB --> ChapterService: 9. Chapter data
+deactivate MongoDB
+ChapterService --> CommentService: 10. Chapter
+deactivate ChapterService
+
+opt Chapter not found
+    CommentService --> CommentController: 10.1. Throw error
+    CommentController --> Router: 10.2. 404 Not Found
+    Router --> UI: 10.3. Show error
+    UI --> User: 10.4. Show error
+end
+
+ref over CommentService, MongoDB: 11. Subsequence - Chapter commenting 2
+
+opt Author exists
+    CommentService -> NotificationService: 11.1. createNotification(dto)
+    activate NotificationService
+    NotificationService --> CommentService: 11.2. send_noti_result
+    deactivate NotificationService
+
+    CommentService -> UserService: 11.3. removeDeviceId(authorId, send_noti_result)
+    activate UserService
+    UserService --> CommentService: 11.4. Remove invalid devices
+    deactivate UserService
+    CommentService --> CommentController: 11.5. Return success
+    CommentController --> Router: 11.6. HTTP response
+    Router --> UI: 11.7. Comment created
+    UI --> User: 11.8. Show success
+end
+
+CommentService --> CommentController: 12. Return success
+deactivate CommentService
+
+CommentController --> Router: 13. HTTP response
+deactivate CommentController
+Router --> UI: 14. Comment created
+deactivate Router
+UI --> User: 15. Show success
+deactivate UI
+deactivate User
+@enduml

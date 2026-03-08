@@ -1,0 +1,65 @@
+@startuml
+skinparam shadowing false
+skinparam entityBackgroundColor white
+skinparam actorBackgroundColor white
+skinparam boundaryBackgroundColor white
+skinparam controlBackgroundColor white
+skinparam databaseBackgroundColor white
+
+actor Admin
+boundary "Emoji Pack" as UI
+boundary Router
+control "EmojiPackController" as Controller
+entity "EmojiPackService" as Service
+entity "EmojiPackModel" as Model
+database MongoDB
+
+Admin -> UI : 1. Click "Delete" button
+activate Admin
+activate UI
+UI -> Router : 2. DELETE /delete-pack/:id
+activate Router
+Router -> Controller : 3. deletePackById(id, req)
+activate Controller
+Controller -> Service : 4. deletePackById(id, payload)
+activate Service
+Service -> Model : 5. findById(id)
+activate Model
+
+Model -> MongoDB : 6. Execute query
+activate MongoDB
+MongoDB --> Model : 7. document
+deactivate MongoDB
+Model --> Service : 8. pack
+deactivate Model
+
+alt Pack not found
+    Service --> Controller : 8.1. throw BadRequestException
+    Controller --> Router : 8.2. HTTP response (400 error)
+    Router --> UI : 8.3. error message
+    UI --> Admin : 8.4. Show "Error while deleting" message
+else Pack found
+    Service -> Service : 9. pack.is_hide = !pack.is_hide
+    activate Service
+    space
+    deactivate Service
+    
+    Service -> Model : 10. pack.save()
+    activate Model
+    Model -> MongoDB : 11. Execute query
+    activate MongoDB
+    MongoDB --> Model : 12. document
+    deactivate MongoDB
+    Model --> Service : 13. updated pack
+    deactivate Model
+    Service --> Controller : 14. success
+    deactivate Service
+    Controller --> Router : 15. HTTP response (200 OK)
+    deactivate Controller
+    Router --> UI : 16. success message
+    deactivate Router
+    UI --> Admin : 17. Show "Delete successfully" message
+    deactivate UI
+    deactivate Admin
+end
+@enduml

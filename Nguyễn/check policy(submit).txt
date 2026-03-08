@@ -1,0 +1,46 @@
+@startuml
+actor System as SYS
+
+boundary "EventEmitter\n'chapter.content_changed'" as EventBus
+control  "ModerationListener\nhandleContentChanged" as ModListener
+control  "ModerationService" as ModSvc
+entity   "Chapter\n(chapterModel)" as ChapterDB
+entity   "ChapterModeration\n(cmModel)" as CmDB
+entity   "ModerationAction\n(logModel)" as LogDB
+
+== B. Auto submit vào hàng chờ moderation (AI_PENDING) ==
+
+' Giả định: từ bước A đã emit event
+SYS -> EventBus: 1. emit('chapter.content_changed', { chapterId })
+EventBus -> ModListener: 2. handleContentChanged({ chapterId })
+activate ModListener
+
+ModListener -> ModSvc: 3. submit({ chapterId }, actorId = undefined)
+activate ModSvc
+
+ModSvc -> ChapterDB: 3.1 findById(chapterId)
+ChapterDB --> ModSvc: 3.2 chapter
+
+alt chapter không tồn tại
+  ModSvc --> ModListener: 3.e throw NotFoundException
+  ModListener -> ModListener: 3.e.1 logger.error('Auto moderation failed')
+else chapter tồn tại
+  ModSvc -> CmDB: 3.3 updateOne({chapter_id}, {\n $set: {\n  chapter_id: chapter._id,\n  status: 'AI_PENDING',\n  risk_score: 0,\n  labels: [],\n  policy_version: dto.policyVersion ?? chapter.policy_version ?? '1.0.0',\n  ai_model: null,\n  ai_findings: [],\n  content_hash: dto.contentHash ?? chapter.last_content_hash ?? ''\n }\n}, upsert:true)
+  CmDB --> ModSvc: 3.4 ok
+
+  ModSvc -> LogDB: 3.5 create ModerationAction\n{chapter_id, actor_id: undefined, action:'ai_check',\n note:'submitted -> AI_PENDING', policy_version}
+  LogDB --> ModSvc: 3.6 saved log
+
+  ModSvc --> ModListener: 3.7 { ok:true }
+end
+deactivate ModSvc
+
+' Ngay sau submit, listener đá luôn AI check thực sự
+ModListener -> ModSvc: 4. runAiCheck(chapterId)
+activate ModSvc
+ModSvc -> ModSvc: 4.1 (tiến trình C – xem sequence C)
+deactivate ModSvc
+
+ModListener --> EventBus: 5. done auto moderation
+deactivate ModListener
+@enduml

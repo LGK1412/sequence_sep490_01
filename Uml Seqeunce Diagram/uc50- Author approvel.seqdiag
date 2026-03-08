@@ -1,0 +1,126 @@
+bottomparticipants
+
+actor User
+boundary "Profile / Author Request UI" as UI
+boundary Router
+control UserController
+control UserService
+control NotificationService
+entity UserModel
+entity ChapterProgressModel
+database MongoDB
+
+User -> UI: 1. Click "Request Author"
+activate User
+activate UI
+
+UI -> Router: 2. POST /author-request
+activate Router
+
+Router -> UserController: 3. requestAuthor(req)
+activate UserController
+
+opt Token / Role Invalid
+    UserController --> Router: 3.1 401 / 403 Error
+    Router --> UI: 3.2 Show error
+    UI --> User: 3.3 Error message
+end
+
+UserController -> UserService: 4. requestAuthor(userId)
+activate UserService
+
+UserService -> UserModel: 5. findById(userId)
+activate UserModel
+UserModel -> MongoDB: 6. query user
+activate MongoDB
+MongoDB --> UserModel: 7. user / null
+deactivate MongoDB
+UserModel --> UserService: 8. user
+deactivate UserModel
+
+alt User not exist
+    UserService --> UserController: 8.1.1. NotFoundException
+    UserController --> Router: 8.1.2. Error response
+    Router --> UI: 8.1.3. Show error
+    UI --> User: 8.1.4. Error message
+else Already author / approved
+    UserService --> UserController: 8.2.1. BadRequestException
+    UserController --> Router: 8.2.2. Error response
+    Router --> UI: 8.2.3. Show error
+    UI --> User: 8.2.4. Error message
+end
+
+UserService -> UserService: 9. evaluateAuthorEligibility(userId)
+activate UserService
+space
+deactivate UserService
+
+UserService -> UserModel: 10. check email verified
+
+activate UserModel
+UserModel -> MongoDB: 11. query verified
+activate MongoDB
+MongoDB --> UserModel: 12. verified flag
+deactivate MongoDB
+UserModel --> UserService: 13. verified result
+deactivate UserModel
+
+UserService -> UserModel: 14. count followers
+activate UserModel
+UserModel -> MongoDB: 15. countDocuments(following_authors)
+activate MongoDB
+MongoDB --> UserModel: 16. followersCount
+deactivate MongoDB
+UserModel --> UserService: 17. followersCount
+deactivate UserModel
+
+UserService -> ChapterProgressModel: 18. count chapters read
+activate ChapterProgressModel
+ChapterProgressModel -> MongoDB: 19. countDocuments(is_completed=true)
+activate MongoDB
+MongoDB --> ChapterProgressModel: 20. chaptersReadCount
+deactivate MongoDB
+ChapterProgressModel --> UserService: 21. chaptersReadCount
+deactivate ChapterProgressModel
+
+alt All criteria met (auto approve)
+    UserService -> UserModel: 21.1.1. update role=author, status=APPROVED
+    activate UserModel
+    UserModel -> MongoDB: 21.1.2. update user
+    activate MongoDB
+    MongoDB --> UserModel: 21.1.3 update success
+    deactivate MongoDB
+    UserModel --> UserService: 21.1.4. update complete
+    deactivate UserModel
+
+
+    opt Has device_id
+        UserService -> NotificationService: 21.1.4.1. createNotification()
+        activate NotificationService
+        NotificationService --> UserService: 21.1.4.2. notification created
+        deactivate NotificationService
+    end
+
+    UserService --> UserController: 21.1.5. autoApproved=true
+else Criteria not met
+    UserService -> UserModel: 21.2.1. update status=PENDING
+    activate UserModel
+    UserModel -> MongoDB: 21.2.2. update user
+    activate MongoDB
+    MongoDB --> UserModel: 21.2.3 update success
+    deactivate MongoDB
+    UserModel --> UserService: 21.2.4 update complete
+    deactivate UserModel
+    UserService --> UserController: 21.2.5. autoApproved=false
+    deactivate UserService
+end
+
+deactivate UserService
+UserController --> Router: 22. HTTP response
+deactivate UserController
+Router --> UI: 23. Show result
+deactivate Router
+UI --> User: 24. See author request result
+deactivate UI
+deactivate User
+@enduml

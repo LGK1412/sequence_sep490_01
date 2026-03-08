@@ -1,0 +1,93 @@
+bottomparticipants
+
+actor Admin
+boundary "User Management UI" as UI
+boundary Router
+control AccessTokenGuard
+control RolesGuard
+control UsersController
+control UsersService
+entity UsersModel
+database MongoDB
+
+Admin -> UI: 1. Open "Edit User" dialog + select new role
+activate Admin
+activate UI
+
+UI -> Router: 2. PATCH /api/user/admin/set-role
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> Admin: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> Admin: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> UsersController: 7. adminSetRole(dto, req.user)
+activate UsersController
+
+UsersController -> UsersService: 8. adminSetRole(adminId, userId, role)
+activate UsersService
+
+UsersService -> UsersService: 9. Validate userId + role enum
+activate UsersService
+space
+deactivate UsersService
+
+UsersService -> UsersModel: 10. findById(userId)
+activate UsersModel
+UsersModel -> MongoDB: 11. query user by _id
+activate MongoDB
+MongoDB --> UsersModel: 12. user | null
+deactivate MongoDB
+UsersModel --> UsersService: 13. user entity
+deactivate UsersModel
+
+opt Target user not found
+  UsersService --> UsersController: 13.1. Throw NotFoundException
+  UsersController --> Router: 13.2. 404 Not Found
+  Router --> UI: 13.3. Error response
+  UI --> Admin: 13.4. Show error message
+end
+
+UsersService -> UsersModel: 14. set role + save()
+activate UsersModel
+UsersModel -> MongoDB: 15. update user.role
+activate MongoDB
+MongoDB --> UsersModel: 16. Saved document
+deactivate MongoDB
+UsersModel --> UsersService: 17. Updated user
+deactivate UsersModel
+
+UsersService --> UsersController: 18. { success:true, role }
+deactivate UsersService
+
+UsersController --> Router: 19. 200 OK response
+deactivate UsersController
+
+Router --> UI: 20. Return updated role
+deactivate Router
+
+UI --> Admin: 21. Show success message
+deactivate UI
+deactivate Admin
+
+@enduml

@@ -1,0 +1,117 @@
+@startuml
+title UC - Admin Set Role (/api/user/admin/set-role)
+
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor Admin as AD
+
+boundary "UserManagement UI (FE)\n(Edit User Dialog)" as UI
+boundary "Router" as Router
+
+control "AccessTokenGuard" as ATG
+control "RolesGuard" as RG
+control "@Roles(ADMIN)" as Roles
+
+control "NestJS\nUserController" as Ctrl
+control "UserService" as Svc
+
+entity "Mongoose\nUserModel (userModel)" as UserModel
+database "MongoDB" as DB
+
+AD -> UI: 1. Open Edit User dialog\n+ select new role
+UI -> UI: 2. Client validate\n(userId, role)
+
+opt 2.1 Client validation failed
+  UI --> AD: 2.1.1 Show inline error
+end
+
+UI -> Router: 3. PATCH /api/user/admin/set-role\n{ userId, role }\n(withCredentials=true)
+activate Router
+
+Router -> ATG: 4. canActivate(request)
+activate ATG
+
+alt 4.1 Token invalid / missing
+  ATG --> Router: 4.1.1 Deny
+  Router --> UI: 4.1.2 401 Unauthorized
+  UI --> AD: 4.1.3 Show error toast
+else 4.2 Token valid
+  ATG --> Router: 4.2.1 Allow
+
+  Router -> RG: 5. checkRole(ADMIN)
+  activate RG
+
+  alt 5.1 Role not ADMIN
+    RG --> Router: 5.1.1 Deny
+    Router --> UI: 5.1.2 403 Forbidden
+    UI --> AD: 5.1.3 Show error toast
+  else 5.2 Role ok
+    RG --> Router: 5.2.1 Allow
+
+    Router -> Ctrl: 6. adminSetRole(dto, req)
+    activate Ctrl
+
+    Ctrl -> Roles: 7. require ADMIN
+    Roles --> Ctrl: 7.1 ok/deny (implicit)
+
+    Ctrl -> Ctrl: 8. extract adminId from req.user
+    Ctrl -> Svc: 9. adminSetRole(adminId, userId, role)
+    activate Svc
+
+    Svc -> Svc: 10. validate userId + role enum
+    Svc -> UserModel: 11. findById(userId)
+    activate UserModel
+    UserModel -> DB: 12. query user by _id
+    DB --> UserModel: 13. user | null
+    deactivate UserModel
+
+    alt 14. Target user not found
+      Svc --> Ctrl: 14.1 throw NotFoundException
+      Ctrl --> Router: 14.2 404 Not Found
+      Router --> UI: 14.3 error response
+      UI --> AD: 14.4 Toast "User not found"
+    else 15. Target user found
+      Svc -> Svc: 15.1 business rules\n- cannot remove own ADMIN\n- cannot downgrade AUTHOR -> USER
+
+      alt 15.2 Rule violated
+        Svc --> Ctrl: 15.2.1 throw BadRequestException
+        Ctrl --> Router: 15.2.2 400 Bad Request
+        Router --> UI: 15.2.3 error response
+        UI --> AD: 15.2.4 Toast error message
+      else 15.3 OK
+        Svc -> UserModel: 16. set role + save()
+        activate UserModel
+        UserModel -> DB: 17. update user.role
+        DB --> UserModel: 18. saved
+        deactivate UserModel
+
+        Svc --> Ctrl: 19. { success:true, role }
+        Ctrl --> Router: 20. 200 OK
+        Router --> UI: 21. response
+        UI -> UI: 22. update table state\n(selectedUser.role = newRole)
+        UI --> AD: 23. Toast "Role updated successfully"
+      end
+    end
+
+    deactivate Svc
+    deactivate Ctrl
+  end
+
+  deactivate RG
+end
+
+deactivate ATG
+deactivate Router
+@enduml

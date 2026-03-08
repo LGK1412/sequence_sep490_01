@@ -1,0 +1,86 @@
+bottomparticipants
+
+actor Admin
+boundary "Admin Policy Form UI" as UI
+boundary Router
+control PoliciesController
+control AccessTokenGuard
+control RolesGuard
+control PoliciesService
+entity PoliciesModel
+database MongoDB
+
+Admin -> UI: 1. Fill form and submit
+activate Admin
+activate UI
+
+UI -> Router: 2. POST /policies (status=Draft|Active)
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1. Deny
+  Router --> UI: 3.2. 401 Unauthorized
+  UI --> Admin: 3.3. Show error message
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+  RolesGuard --> Router: 5.1. Deny
+  Router --> UI: 5.2. 403 Forbidden
+  UI --> Admin: 5.3. Show error message
+end
+
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> PoliciesController: 7. create(dto)
+activate PoliciesController
+
+PoliciesController -> PoliciesService: 8. create(body)
+activate PoliciesService
+
+opt slug is missing
+  PoliciesService -> PoliciesService: 8.1 Generate slug
+  activate PoliciesService
+  space
+  deactivate PoliciesService
+end
+
+
+PoliciesService -> PoliciesModel: 9. new(dto).save()
+activate PoliciesModel
+
+PoliciesModel -> MongoDB: 10. insert document
+activate MongoDB
+MongoDB --> PoliciesModel: 11. Saved document
+deactivate MongoDB
+
+PoliciesModel --> PoliciesService: 12. Created policy
+deactivate PoliciesModel
+
+opt Duplicate slug or DB error
+  PoliciesService --> PoliciesController: 12.1. Throw error
+  PoliciesController --> Router: 12.2. HTTP 400/500
+  Router --> UI: 12.3. Create failed
+  UI --> Admin: 12.4. Show error message
+end
+
+PoliciesService --> PoliciesController: 13. Created policy
+deactivate PoliciesService
+
+PoliciesController --> Router: 14. HTTP 201 response
+deactivate PoliciesController
+
+Router --> UI: 15. Return created policy
+deactivate Router
+UI --> Admin: 16. Create policy success
+deactivate UI
+deactivate Admin

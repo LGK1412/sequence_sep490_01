@@ -1,0 +1,74 @@
+@startuml
+actor Author as AU
+
+' ==== FRONTEND ====
+boundary "CreateChapterPage (FE)\n/author/chapter/{mangaId}/textChapter/create" as FE
+control  "Axios api\n(NEXT_PUBLIC_API_URL /api)" as FEApi
+
+' ==== BACKEND ====
+boundary "TextChapterController" as ChapterCtrl
+control  "ChapterService" as ChapterSvc
+boundary "EventEmitter\n'chapter.content_changed'" as EventBus
+entity   "Chapter\n(chapterModel)" as ChapterDB
+entity   "TextChapter\n(textchapters)" as TextDB
+
+== A. Author lưu hoặc tạo chapter mới ==
+
+AU -> FE: 1. Open create page\n/author/chapter/{mangaId}/textChapter/create
+FE -> FEApi: 2. GET /text-chapter/{mangaId}
+activate FEApi
+FEApi -> ChapterCtrl: 2.1 GET /api/text-chapter/{mangaId}
+activate ChapterCtrl
+ChapterCtrl -> ChapterSvc: 2.2 findByManga(mangaId)
+activate ChapterSvc
+ChapterSvc -> ChapterDB: 2.3 query chapters by manga_id
+ChapterDB --> ChapterSvc: 2.4 list chapters
+ChapterSvc --> ChapterCtrl: 2.5 chapters[]
+deactivate ChapterSvc
+ChapterCtrl --> FEApi: 2.6 JSON chapters[]
+deactivate ChapterCtrl
+FEApi --> FE: 2.7 chapters[]
+deactivate FEApi
+FE -> FE: 3. Render list + empty form\n(dirty = false)
+
+AU -> FE: 4. Nhập title, number, price, content(html)
+FE -> FE: 5. dirty = true, liveWordCount = countWords(content)
+
+group 6. Author click Save / Create
+  alt Save Draft
+    AU -> FE: 6.a Click "Lưu bản nháp"
+    FE -> FE: 6.a.1 validate()
+    FE -> FEApi: 6.a.2 POST /text-chapter\n{title,order,price,isPublished:false,content,manga_id}
+  else Create & Publish
+    AU -> FE: 6.b Click "Tạo chương"
+    FE -> FE: 6.b.1 validate()
+    FE -> FEApi: 6.b.2 POST /text-chapter\n{title,order,price,isPublished:true,content,manga_id}
+  end
+end
+
+activate FEApi
+FEApi -> ChapterCtrl: 7. POST /api/text-chapter
+activate ChapterCtrl
+ChapterCtrl -> ChapterSvc: 7.1 createOrUpdate(dto)
+activate ChapterSvc
+
+ChapterSvc -> ChapterDB: 7.2 create/update Chapter
+ChapterDB --> ChapterSvc: 7.3 chapter(_id, title, manga_id,...)
+
+ChapterSvc -> TextDB: 7.4 create/update TextChapter\n{chapter_id, content(html)}
+TextDB --> ChapterSvc: 7.5 saved text
+
+' 🔔 Sự kiện nội bộ: nội dung chương vừa đổi
+ChapterSvc -> EventBus: 7.6 emit('chapter.content_changed', { chapterId })
+
+ChapterSvc --> ChapterCtrl: 7.7 return chapterId
+deactivate ChapterSvc
+
+ChapterCtrl --> FEApi: 7.8 201 Created + { chapter: { _id, ... } }
+deactivate ChapterCtrl
+FEApi --> FE: 7.9 newChapter
+deactivate FEApi
+
+FE -> FE: 8. setChapters([...prev, newChapter])\nreset form, dirty=false
+FE --> AU: 9. UI hiển thị chương mới\n(không hề chặn author)
+@enduml

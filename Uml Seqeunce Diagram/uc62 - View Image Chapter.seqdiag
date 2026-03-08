@@ -1,0 +1,55 @@
+bottomparticipants
+
+actor User
+boundary "View Chapter UI" as UI
+boundary Router
+control ImageChapterController
+control ImageChapterService
+entity ChapterModel
+database MongoDB
+
+User -> UI: 1. Open chapter detail
+activate User
+activate UI
+
+UI -> Router: 2. GET /chapter/id/{chapterId}
+activate Router
+
+opt Invalid chapterId
+    Router --> UI: 2.1 BadRequestException
+    UI --> User: 2.2 Show error
+end
+
+Router -> ImageChapterController: 3. getChapterById(chapterId)
+activate ImageChapterController
+
+ImageChapterController -> ImageChapterService: 4. getChapterById(ObjectId)
+activate ImageChapterService
+
+ImageChapterService -> ChapterModel: 5. aggregate(match + lookup)
+activate ChapterModel
+ChapterModel -> MongoDB: 6. aggregate pipeline
+activate MongoDB
+MongoDB --> ChapterModel: 7. aggregated result
+deactivate MongoDB
+ChapterModel --> ImageChapterService: 8. result[]
+deactivate ChapterModel
+
+opt Chapter not found
+    ImageChapterService --> ImageChapterController: 8.1 null
+    ImageChapterController --> Router: 8.2 NotFoundException
+    Router --> UI: 8.3 Show error
+    UI --> User: 8.4 Chapter not found
+end
+
+ImageChapterService --> ImageChapterController: 9. chapter with images
+deactivate ImageChapterService
+
+ImageChapterController --> Router: 10. { success: true, data }
+deactivate ImageChapterController
+Router --> UI: 11. Show chapter data
+deactivate Router
+UI --> User: 12. View chapter
+deactivate UI
+deactivate User
+@enduml

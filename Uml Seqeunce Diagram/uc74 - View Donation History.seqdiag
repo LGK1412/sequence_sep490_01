@@ -1,0 +1,41 @@
+bottomparticipants
+
+actor User
+boundary "Profile Page" as UI
+boundary Router
+control "DonationController" as Controller
+entity "DonationService" as Service
+entity "DonationModel" as DonationModel
+database MongoDB
+
+User -> UI : 1. Open Profile page
+activate User
+activate UI
+
+UI -> Router : 2. GET /api/donation/sent
+activate Router
+Router -> Controller : 3. getSentGifts(req)
+activate Controller
+Controller -> Service : 4. getSentGifts(userId)
+activate Service
+Service -> DonationModel : 5. find({ senderId })\npopulate(receiver, item)\nsort()
+activate DonationModel
+
+DonationModel -> MongoDB : 6. Execute query
+activate MongoDB
+
+MongoDB --> DonationModel : 7. documents
+deactivate MongoDB
+
+DonationModel --> Service : 8. donations
+deactivate DonationModel
+
+Service --> Controller : 9. result
+deactivate Service
+Controller --> Router : 10. HTTP response 
+deactivate Controller
+Router --> UI : 11. donation history list
+deactivate Router
+UI -> User : 12. Display donation history list
+deactivate UI
+deactivate User

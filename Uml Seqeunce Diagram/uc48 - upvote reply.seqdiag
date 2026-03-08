@@ -1,0 +1,49 @@
+bottomparticipants
+
+actor User
+boundary "Reply Section (UI)" as UI
+boundary Router
+control ReplyController
+control ReplyService
+entity VoteReplyModel
+database MongoDB
+
+User -> UI: 1. Click Reply Upvote
+activate User
+activate UI
+
+UI -> Router: 2. POST /upvote (reply)
+activate Router
+
+Router -> ReplyController: 3. upVote(reply_id, req)
+activate ReplyController
+
+opt Token / Role Invalid
+    ReplyController --> Router: 3.1 401 / 403 Error
+    Router --> UI: 3.2 Show error
+    UI --> User: 3.3 Error message
+end
+
+ReplyController -> ReplyService: 4. upVote(reply_id, payload)
+activate ReplyService
+
+ReplyService -> ReplyService: 5. checkLegitUser(payload)
+activate ReplyService
+space
+deactivate ReplyService
+
+alt User not valid
+    ReplyService --> ReplyController: 5.1.1. Error
+    ReplyController --> Router: 5.1.2. Error response
+    Router --> UI: 5.1.3. Show error
+    UI --> User: 5.1.4. Error message
+else User is banned
+    ReplyService --> ReplyController: 5.2.1 Error
+    ReplyController --> Router: 5.2.2 Error response
+    Router --> UI: 5.2.3 Show error
+    UI --> User: 5.2.4 Error message
+end
+
+ref over User, MongoDB: 6. Subsequence - Vote reply 1
+
+@enduml

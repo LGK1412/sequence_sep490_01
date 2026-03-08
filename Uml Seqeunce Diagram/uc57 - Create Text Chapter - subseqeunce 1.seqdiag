@@ -1,0 +1,110 @@
+bottomparticipants
+
+title Subseqeunce - Add to queue for AI check policies
+
+control ModerationListener
+control ModerationService
+control GeminiModerator
+entity ChapterModel
+entity TextChapterModel
+entity PoliciesModel
+entity ChapterModerationModel
+entity ModerationActionModel
+database MongoDB
+
+ModerationListener -> ModerationService: 1. Run Ai Check
+activate ModerationListener
+activate ModerationService
+
+ModerationService -> ChapterModel: 2. findById(chapterId)
+activate ChapterModel
+ChapterModel -> MongoDB: 3. find document
+activate MongoDB
+MongoDB --> ChapterModel: 4. chapter | null
+deactivate MongoDB
+ChapterModel --> ModerationService: 5. return chapter
+deactivate ChapterModel
+
+opt Chapter not found
+  ModerationService --> ModerationListener: 5.1. Throw NotFoundException
+end
+
+ModerationService -> ChapterModel: 6. aggregate + lookup textchapters
+activate ChapterModel
+ChapterModel -> TextChapterModel: 7. find by chapter_id
+activate TextChapterModel
+TextChapterModel -> MongoDB: 8. find document
+activate MongoDB
+MongoDB --> TextChapterModel: 9. texts[].content (html)
+deactivate MongoDB
+TextChapterModel --> ChapterModel: 10. return content
+deactivate TextChapterModel
+ChapterModel --> ModerationService: 11. return record{title, content}
+deactivate ChapterModel
+
+ModerationService -> PoliciesModel: 12. findActivePostingPolicies()
+activate PoliciesModel
+PoliciesModel -> MongoDB: 13. find documents
+activate MongoDB
+MongoDB --> PoliciesModel: 14. policies[]
+deactivate MongoDB
+PoliciesModel --> ModerationService: 15. return policies
+deactivate PoliciesModel
+
+ModerationService -> GeminiModerator: 16. check(title, html, policies, policyVersion)
+activate GeminiModerator
+
+GeminiModerator -> GeminiModerator: 17. sanitizeHtml + stripTags
+activate GeminiModerator
+space
+deactivate GeminiModerator
+GeminiModerator -> GeminiModerator: 18. computeContentHash(sha256)
+activate GeminiModerator
+space
+deactivate GeminiModerator
+GeminiModerator -> GeminiModerator: 19. generateContent()
+activate GeminiModerator
+space
+deactivate GeminiModerator
+
+GeminiModerator --> ModerationService: 20. Gemini Check Output
+deactivate GeminiModerator
+
+ModerationService -> ModerationService: 21. map ai_findings -> FindingDto[]
+activate ModerationService
+space
+deactivate ModerationService
+
+ModerationService -> ChapterModerationModel: 22. updateOne({chapter_id}, moderationData)
+
+activate ChapterModerationModel
+ChapterModerationModel -> MongoDB: 23. update document
+activate MongoDB
+MongoDB --> ChapterModerationModel: 24. updated
+deactivate MongoDB
+ChapterModerationModel --> ModerationService: 25. ok
+deactivate ChapterModerationModel
+
+ModerationService -> ChapterModel: 26. updateOne({_id}, ai_verdict, risk_score, policy_version, last_content_hash)
+activate ChapterModel
+ChapterModel -> MongoDB: 27. update document
+activate MongoDB
+MongoDB --> ChapterModel: 28. updated
+deactivate MongoDB
+ChapterModel --> ModerationService: 29. ok
+deactivate ChapterModel
+
+ModerationService -> ModerationActionModel: 30. create({chapter_id, action:'ai_check', result,...})
+activate ModerationActionModel
+ModerationActionModel -> MongoDB: 31. insert document
+activate MongoDB
+MongoDB --> ModerationActionModel: 32. saved
+deactivate MongoDB
+ModerationActionModel --> ModerationService: 33. created
+deactivate ModerationActionModel
+
+ModerationService --> ModerationListener: 34. {ok:true, verdict:PASSED|WARN|BLOCK}
+deactivate ModerationService
+deactivate ModerationListener
+
+@enduml

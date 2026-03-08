@@ -1,0 +1,74 @@
+bottomparticipants
+
+actor Staff
+boundary "Admin UI" as UI
+boundary Router
+control CommentController
+control CommentService
+entity CommentModel
+control AuditService
+database MongoDB
+
+Staff -> UI: 1. Click toggle visibility
+activate Staff
+activate UI
+
+UI -> Router: 2. PATCH /toggle/:id (JWT)
+activate Router
+
+Router -> CommentController: 3. toggleComment(id, req)
+activate CommentController
+
+CommentController -> CommentService: 4. toggleCommentVisibility(id, payload)
+activate CommentService
+
+CommentService -> CommentModel: 5. findById(id)
+activate CommentModel
+CommentModel -> MongoDB: 6. findById
+activate MongoDB
+MongoDB --> CommentModel: 7. comment / null
+deactivate MongoDB
+CommentModel --> CommentService: 8. result
+deactivate CommentModel
+
+opt Comment not found
+    CommentService --> CommentController: 8.1 Throw BadRequestException
+    CommentController --> Router: 8.2 HTTP 400
+    Router --> UI: 8.3 Error response
+    UI --> Staff: 8.4 Comment does not exist
+
+end
+
+CommentService -> CommentService: 9. Toggle is_delete flag
+activate CommentService
+space
+deactivate CommentService
+
+CommentService -> CommentModel: 10. save()
+activate CommentModel
+CommentModel -> MongoDB: 11. update comment
+activate MongoDB
+MongoDB --> CommentModel: 12. saved
+deactivate MongoDB
+CommentModel --> CommentService: 13. done
+deactivate CommentModel
+
+CommentService -> AuditService: 14. createLog(auditData)
+activate AuditService
+AuditService -> MongoDB: 15. insert audit log
+activate MongoDB
+MongoDB --> AuditService: 16. saved
+deactivate MongoDB
+AuditService --> CommentService: 17. done
+deactivate AuditService
+
+CommentService --> CommentController: 18. success result
+deactivate CommentService
+CommentController --> Router: 19. HTTP 200 + message
+deactivate CommentController
+Router --> UI: 20. Success response
+deactivate Router
+UI --> Staff: 21. Show result message
+deactivate UI
+deactivate Staff
+@enduml

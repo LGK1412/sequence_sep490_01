@@ -1,0 +1,41 @@
+bottomparticipants
+
+actor User
+control Other Service
+control NotificationService
+database MongoDB
+control Firebase
+
+User -> Other Service: 1. sendNotification(notification)
+activate User
+activate Other Service
+Other Service -> NotificationService: 2. createNotification(noti)
+activate NotificationService
+
+NotificationService -> MongoDB: 3. insert notification (noti.save)
+activate MongoDB
+MongoDB --> NotificationService: 4. saved
+deactivate MongoDB
+
+NotificationService -> NotificationService: 5. Get device id
+activate NotificationService
+space
+deactivate NotificationService
+opt No tokens
+  NotificationService --> Other Service: 5.1 {successTokens:[], failedTokens:[]}
+  Other Service --> User: 5.2 return empty result
+end
+
+NotificationService -> Firebase: 6. sendEachForMulticast(tokens,title,body)
+activate Firebase
+Firebase --> NotificationService: 7. successCount/failureCount + per-token results
+deactivate Firebase
+NotificationService -> NotificationService: 8. Build successTokens/failedTokens
+activate NotificationService
+space
+deactivate NotificationService
+NotificationService --> Other Service: 9.1 Return delivery result
+deactivate NotificationService
+Other Service --> User: 9.2 return send result
+deactivate Other Service
+deactivate User

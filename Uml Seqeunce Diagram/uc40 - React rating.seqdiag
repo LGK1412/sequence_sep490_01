@@ -1,0 +1,62 @@
+bottomparticipants
+
+actor User
+boundary "Rating Like Button (UI)" as UI
+boundary Router
+control RatingController
+control RatingLikeService
+entity RatingLikeModel
+entity RatingModel
+database MongoDB
+
+User -> UI: 1. Click Like / Unlike rating
+activate User
+activate UI
+
+UI -> Router: 2. POST /rating/toggle
+activate Router
+
+Router -> RatingController: 3. toggle(ratingId)
+activate RatingController
+
+loop User role not authorized / Rating missing / Invalid ratingId type
+    RatingController --> Router: 3.1.1. 401 Unauthorized
+    Router --> UI: 3.1.2. Show error
+    UI --> User: 3.1.3. Show error
+end
+
+RatingController -> RatingLikeService: 4. toggleLike(ratingId, userId)
+
+activate RatingLikeService
+RatingLikeService -> RatingLikeModel: 5. Find existing like
+activate RatingLikeModel
+RatingLikeModel -> MongoDB: 6. findOne({ ratingId, userId })
+activate MongoDB
+MongoDB --> RatingLikeModel: 7. Like document / null
+deactivate MongoDB
+RatingLikeModel --> RatingLikeService: 8. Existing like
+deactivate RatingLikeModel
+
+opt Already liked (UNLIKE)
+    ref over RatingLikeService, MongoDB: 8.1. Subsequence - React rating 1
+    opt Have error
+        RatingLikeService --> RatingController: 8.1.1. Return unliked & likesCount
+        RatingController --> Router: 8.1.2. HTTP response
+        Router --> UI: 8.1.3. Update like UI
+        UI --> User: 8.1.4. Show like state
+    end
+end
+
+
+ref over RatingLikeService, MongoDB: 9. Subsequence - React rating 2
+
+RatingLikeService --> RatingController: 10. Return liked & likesCount
+deactivate RatingLikeService
+
+RatingController --> Router: 11. HTTP response
+deactivate RatingController
+Router --> UI: 12. Update like UI
+deactivate Router
+UI --> User: 13. Show like state
+deactivate UI
+deactivate User

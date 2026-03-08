@@ -1,0 +1,80 @@
+bottomparticipants
+
+actor Admin
+boundary "Genre Management UI" as UI
+boundary Router
+control GenreController
+control ValidationPipe
+control GenreService
+entity GenreModel
+database MongoDB
+
+Admin -> UI: 1. Click "Add Genre" + submit form
+activate Admin
+activate UI
+
+UI -> UI: 2. Validate required fields (name, description)
+activate UI
+space
+deactivate UI
+
+opt Missing name or description
+    UI --> Admin: 2.1. Show error message
+end
+    
+UI -> Router: 3. POST /genre
+activate Router
+
+loop Token invalid / Role invalid
+    Router --> UI: 3.1. 401 Unauthorized
+    UI --> Admin: 3.2. Show error message
+end
+    
+Router -> GenreController: 4. create(dto)
+activate GenreController
+
+GenreController -> ValidationPipe: 5. Validate CreateGenreDto
+activate ValidationPipe
+
+opt Validation failed
+    ValidationPipe --> GenreController: 5.1. Throw 400 error
+    GenreController --> Router: 5.2. HTTP 400 response
+    Router --> UI: 5.3. Validation error
+    UI --> Admin: 5.4. Show error message
+end
+
+ValidationPipe --> GenreController: 6. DTO valid
+deactivate ValidationPipe
+
+GenreController -> GenreService: 7. createGenre(dto)
+activate GenreService
+
+GenreService -> GenreModel: 8. create(genre)
+activate GenreModel
+
+GenreModel -> MongoDB: 9. insert document
+activate MongoDB
+MongoDB --> GenreModel: 10. return result
+deactivate MongoDB
+GenreModel --> GenreService: 11. return result
+deactivate GenreModel
+
+opt Duplicate name
+    GenreService --> GenreController: 11.1. Throw BadRequest
+    GenreController --> Router: 11.2. HTTP 400 response
+    Router --> UI: 11.3. Duplicate error
+    UI --> Admin: 11.4. Show error message
+end
+
+
+GenreService --> GenreController: 12. Created genre
+deactivate GenreService
+GenreController --> Router: 13. HTTP 201 response
+deactivate GenreController
+Router --> UI: 14. Return created genre
+deactivate Router
+UI --> Admin: 15. Create genre success
+deactivate UI
+deactivate Admin
+
+@enduml

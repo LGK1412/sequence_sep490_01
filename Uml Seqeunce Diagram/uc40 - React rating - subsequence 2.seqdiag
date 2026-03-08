@@ -1,0 +1,38 @@
+bottomparticipants
+
+title Subsequence - React rating 2
+
+control RatingLikeService
+entity RatingLikeModel
+entity RatingModel
+database MongoDB
+
+RatingLikeService -> RatingLikeModel: 1. Create like
+activate RatingLikeModel
+activate RatingLikeService
+RatingLikeModel -> MongoDB: 2. Insert like
+activate MongoDB
+MongoDB --> RatingLikeModel: 3. Inserted
+deactivate MongoDB
+RatingLikeModel --> RatingLikeService: 4. Return created like
+deactivate RatingLikeModel
+
+RatingLikeService -> RatingModel: 5. Increase likeCount
+activate RatingModel
+RatingModel -> MongoDB: 6. updateOne($inc +1)
+activate MongoDB
+MongoDB --> RatingModel: 7. Update result
+RatingModel --> RatingLikeService: 8. Return result
+deactivate MongoDB
+deactivate RatingModel
+
+
+RatingLikeService -> RatingModel: 9. Get current likeCount
+activate RatingModel
+RatingModel -> MongoDB: 10. findById select likeCount
+activate MongoDB
+MongoDB --> RatingModel: 11. Rating document
+deactivate MongoDB
+RatingModel --> RatingLikeService: 12. likeCount
+deactivate RatingModel
+deactivate RatingLikeService

@@ -1,0 +1,69 @@
+@startuml
+actor Admin as AD
+
+' ==== FRONTEND ====
+boundary "ModerationWorkspacePage (FE)" as FE
+control  "lib/moderation.ts\nfetchModerationRecord" as FEApi
+control  "ChapterSummary\n(ContentViewer, FindingsPanel)" as FEViews
+
+' ==== BACKEND ====
+boundary "ModerationController" as ModCtrl
+control  "ModerationService" as ModSvc
+entity   "ChapterModeration\n(cmModel)" as CmDB
+entity   "Chapter" as ChapterDB
+entity   "TextChapter" as TextDB
+entity   "Policies" as PolicyDB
+entity   "ModerationAction\n(logModel)" as LogDB
+entity   "Manga" as MangaDB
+entity   "User" as UserDB
+control  "GeminiModerator" as Gemini
+
+== Roll 93A — Load Moderation Record ==
+
+AD -> FE: 1. Open /admin/moderation/workspace?chapterId={id}
+FE -> FE: 2. useSearchParams() → chapterId
+FE -> FE: 3. useEffect([chapterId]) → load()
+
+== [A] Load moderation record ==
+FE -> FEApi: 4. fetchModerationRecord(chapterId)
+activate FEApi
+
+FEApi -> ModCtrl: 5. GET /moderation/record/{chapterId}
+activate ModCtrl
+ModCtrl -> ModSvc: 5.1 getRecord(chapterId)
+activate ModSvc
+
+ModSvc -> CmDB: 5.2 aggregate on ChapterModeration
+activate CmDB
+CmDB -> ChapterDB: 5.3 $lookup chapters by chapter_id
+ChapterDB --> CmDB: 5.4 chapter (title, manga_id)
+CmDB -> MangaDB: 5.5 $lookup mangas by manga_id
+MangaDB --> CmDB: 5.6 manga (authorId)
+CmDB -> UserDB: 5.7 $lookup users by authorId
+UserDB --> CmDB: 5.8 author (username/email)
+CmDB -> TextDB: 5.9 $lookup textchapters by chapter_id
+TextDB --> CmDB: 5.10 texts[0].content (html)
+CmDB --> ModSvc: 5.11 record + joins\n{chapter_id,status,risk_score,labels,policy_version,\n ai_model,ai_findings,updatedAt,chapterTitle,authorName,contentHtml}
+deactivate CmDB
+
+ModSvc --> ModCtrl: 5.12 record
+deactivate ModSvc
+ModCtrl --> FEApi: 5.13 JSON record
+deactivate ModCtrl
+
+FEApi -> FEApi: 6. mapModerationRecord(r) → ModerationRecord
+FEApi --> FE: 7. return ModerationRecord
+deactivate FEApi
+
+FE -> FE: 8. setRecord(rec), setLoading(false)
+FE -> FEViews: 9. Render ChapterSummary + ContentViewer + FindingsPanel\n(title, author, html, risk, badges,...)
+FEViews --> AD: 10. UI hiển thị kết quả AI + nội dung chương
+
+alt Record not found / lỗi
+  ModSvc --> ModCtrl: throw NotFound / error
+  ModCtrl --> FEApi: 5.e HTTP 404/500
+  FEApi --> FE: 5.e.1 throw Error("Load record failed")
+  FE -> FE: 5.e.2 setErr(), setLoading(false)
+  FE --> AD: 5.e.3 Show Card lỗi "Load record failed"
+end
+@enduml

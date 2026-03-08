@@ -1,0 +1,42 @@
+bottomparticipants
+
+title Subsequence - Progress tracking
+
+control ChapterService
+entity ProgressModel
+entity ChapterModel
+database MongoDB
+
+ChapterService -> ProgressModel: 1. Request previous progress
+activate ChapterService
+activate ProgressModel
+ProgressModel -> MongoDB: 2. Find progress by user & chapter
+activate MongoDB
+MongoDB --> ProgressModel: 3. Progress document / null
+deactivate MongoDB
+ProgressModel --> ChapterService: 4. Old progress data
+deactivate ProgressModel
+
+ChapterService -> ChapterService: 5. Determine wasCompleted & isNowCompleted
+activate ChapterService
+space
+deactivate ChapterService
+
+ChapterService -> ProgressModel: 6. Save updated progress
+activate ProgressModel
+ProgressModel -> MongoDB: 7. Upsert progress record
+activate MongoDB
+MongoDB --> ProgressModel: 8. Updated progress
+deactivate MongoDB
+ProgressModel --> ChapterService: 9. chapterProgress
+deactivate ProgressModel
+
+ChapterService -> ChapterModel: 10. Request chapter info
+activate ChapterModel
+ChapterModel -> MongoDB: 11. Find chapter by ID
+activate MongoDB
+MongoDB --> ChapterModel: 12. Chapter document
+deactivate MongoDB
+ChapterModel --> ChapterService: 13. Chapter data
+deactivate ChapterModel
+deactivate ChapterService

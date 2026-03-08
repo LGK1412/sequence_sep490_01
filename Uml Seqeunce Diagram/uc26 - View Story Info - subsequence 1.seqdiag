@@ -1,0 +1,44 @@
+bottomparticipants
+
+title Subsequence - View Story Info
+
+control MangaService
+entity ChapterModel
+entity ChapterPurchaseModel
+entity RatingModel
+database MongoDB
+
+MangaService -> ChapterModel: 1. find published chapters
+activate ChapterModel
+activate MangaService
+ChapterModel -> MongoDB: 2. query chapters
+activate MongoDB
+MongoDB --> ChapterModel: 3. chapter list
+deactivate MongoDB
+ChapterModel --> MangaService: 4. return chapters
+deactivate ChapterModel
+
+opt User logged in
+  MangaService -> ChapterPurchaseModel: 4.1. find purchased chapters
+  activate ChapterPurchaseModel
+  ChapterPurchaseModel -> MongoDB: 4.2. query purchases
+  activate MongoDB
+  MongoDB --> ChapterPurchaseModel: 4.3. purchased chapters
+  deactivate MongoDB
+  ChapterPurchaseModel --> MangaService: 4.4. return purchases
+  deactivate ChapterPurchaseModel
+end
+
+MangaService -> MangaService: 5. map chapters (locked / purchased)
+activate MangaService
+space
+deactivate MangaService
+MangaService -> RatingModel: 6. aggregate rating summary
+activate RatingModel
+RatingModel -> MongoDB: 7. aggregate ratings
+activate MongoDB
+MongoDB --> RatingModel: 8. rating summary
+deactivate MongoDB
+RatingModel --> MangaService: 9. return summary
+deactivate RatingModel
+deactivate MangaService

@@ -1,0 +1,78 @@
+bottomparticipants
+
+actor Admin
+boundary "Style Management UI" as UI
+boundary Router
+control StylesController
+control AccessTokenGuard
+control RolesGuard
+control StylesService
+entity StylesModel
+database MongoDB
+
+Admin -> UI: 1. Click Delete + confirm dialog
+activate Admin
+activate UI
+
+opt User cancels
+    UI --> Admin: 1.1. Close dialog
+end
+
+UI -> Router: 2. DELETE /styles/{id}
+activate Router
+
+Router -> AccessTokenGuard: 3. canActivate(request)
+activate AccessTokenGuard
+opt Token invalid
+    AccessTokenGuard --> Router: 3.1. Deny
+    Router --> UI: 3.2. 401 Unauthorized
+    UI --> Admin: 3.3. Show error message
+end
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 5. checkRole(ADMIN)
+activate RolesGuard
+opt Role invalid
+    RolesGuard --> Router: 5.1. Deny
+    Router --> UI: 5.2. 403 Forbidden
+    UI --> Admin: 5.3. Show error message
+end
+RolesGuard --> Router: 6. Allow
+deactivate RolesGuard
+
+Router -> StylesController: 7. delete(id)
+activate StylesController
+
+StylesController -> StylesService: 8. delete(id)
+activate StylesService
+
+StylesService -> StylesModel: 9. findByIdAndDelete(id)
+activate StylesModel
+StylesModel -> MongoDB: 10. delete document
+activate MongoDB
+MongoDB --> StylesModel: 11. Deleted document
+deactivate MongoDB
+StylesModel --> StylesService: 12. Deleted style
+deactivate StylesModel
+
+opt Not found (null)
+    StylesService --> StylesController: 12.1. null
+    StylesController --> Router: 12.2. HTTP 200 (null) or 404
+    Router --> UI: 12.3. Delete failed
+    UI --> Admin: 12.4. Show error message
+end
+
+StylesService --> StylesController: 13. Deleted style
+deactivate StylesService
+StylesController --> Router: 14. HTTP 200 response
+deactivate StylesController
+Router --> UI: 15. Return deleted style
+deactivate Router
+
+UI --> Admin: 17. Delete success
+
+deactivate UI
+deactivate Admin
+
+@enduml

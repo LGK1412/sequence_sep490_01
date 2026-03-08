@@ -1,0 +1,55 @@
+@startuml
+actor Admin as AD
+
+' ==== FRONTEND ====
+boundary "ModerationWorkspacePage (FE)" as FE
+control  "lib/moderation.ts\ndecideModeration" as FEApi
+control  "ChapterSummary\n(ContentViewer, FindingsPanel)" as FEViews
+
+' ==== BACKEND ====
+boundary "ModerationController" as ModCtrl
+control  "ModerationService" as ModSvc
+entity   "Chapter" as ChapterDB
+entity   "ModerationAction\n(logModel)" as LogDB
+
+== Roll 93B — Admin Decide Moderation ==
+
+AD -> FEViews: 1. Click "Approve / Reject / Request Changes"
+FEViews -> FEViews: 2. Open AlertDialog\nnhập note (optional)
+AD -> FEViews: 3. Confirm
+FEViews -> FE: 4. onDecision(action, note)
+FE -> FE: 5. setActLoading(true)
+
+FE -> FEApi: 6. decideModeration(record.chapterId, action, note)
+activate FEApi
+FEApi -> ModCtrl: 7. POST /moderation/decide\n{chapterId, action, note}
+activate ModCtrl
+ModCtrl -> ModSvc: 7.1 decide(dto, adminId)
+activate ModSvc
+
+ModSvc -> ChapterDB: 7.2 findById(chapterId)
+ChapterDB --> ModSvc: 7.3 chapter
+
+alt action == approve
+  ModSvc -> ChapterDB: 7.4 updateOne({_id}, {$set:{is_published:true}})
+else action == reject
+  ModSvc -> ChapterDB: 7.4' updateOne({_id}, {$set:{is_published:false}})
+else action == request_changes
+  ModSvc -> ChapterDB: 7.4'' (optional: không đổi publish)
+end
+
+ModSvc -> LogDB: 7.5 create ModerationAction\n{chapter_id, actor_id, action, note, policy_version}
+LogDB --> ModSvc: 7.6 saved log
+
+ModSvc --> ModCtrl: 7.7 { ok: true }
+deactivate ModSvc
+ModCtrl --> FEApi: 7.8 HTTP 200
+deactivate ModCtrl
+FEApi --> FE: 7.9 resolve
+deactivate FEApi
+
+' Reload record để FE thấy status/risk mới nhất
+FE -> FE: 8. await load() (gọi lại fetchModerationRecord)
+FE -> FEViews: 9. setRecord(rec mới), setActLoading(false)
+FEViews --> AD: 10. UI cập nhật theo quyết định moderator
+@enduml

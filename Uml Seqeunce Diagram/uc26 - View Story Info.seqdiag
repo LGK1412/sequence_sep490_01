@@ -1,0 +1,62 @@
+deactivate MangaService
+
+actor User
+boundary "Manga Detail Page" as UI
+boundary Router
+control MangaController
+control MangaService
+entity MangaModel
+entity ChapterModel
+entity ChapterPurchaseModel
+entity RatingModel
+database MongoDB
+
+User -> UI: 1. Open manga detail
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/manga/detail/{id}
+activate Router
+
+Router -> MangaController: 3. getMangaDetail(id)
+activate MangaController
+
+MangaController -> MangaService: 4. findMangaDetail(mangaId, userId?)
+activate MangaService
+
+opt Invalid mangaId
+  MangaService --> MangaController: 4.1. NotFoundException
+  MangaController --> Router: 4.2. HTTP error
+  Router --> UI: 4.3. Show error
+  UI --> User: 4.4. Show error
+end
+
+MangaService -> MangaModel: 5. findById().populate(author)
+activate MangaModel
+MangaModel -> MongoDB: 6. query manga
+activate MongoDB
+MongoDB --> MangaModel: 7. manga data
+deactivate MongoDB
+MangaModel --> MangaService: 8. return manga
+deactivate MangaModel
+
+opt Manga not found
+  MangaService --> MangaController: 8.1. NotFoundException
+  MangaController --> Router: 8.2. HTTP error
+  Router --> UI: 8.3. Show error
+  UI --> User: 8.4. Show error
+end
+
+ref over MangaService, MongoDB: 9. Subsequence - View Story Info
+
+MangaService --> MangaController: 10. return manga detail
+deactivate MangaService
+
+MangaController --> Router: 11. HTTP response
+deactivate MangaController
+
+Router --> UI: 12. Response data
+deactivate Router
+UI --> User: 13. Show manga detail
+deactivate UI
+deactivate User

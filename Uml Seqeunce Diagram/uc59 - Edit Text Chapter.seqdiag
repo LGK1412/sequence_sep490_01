@@ -1,0 +1,115 @@
+bottomparticipants
+
+actor Author
+boundary "Update Chapter UI" as UI
+boundary Router
+control TextChapterController
+control TextChapterService
+entity ChapterModel
+entity TextChapterModel
+entity MangaModel
+control EventEmitter
+database MongoDB
+
+Author -> UI: 1. Submit update chapter form
+activate Author
+activate UI
+
+UI -> Router: 2. PATCH /chapter/{id}
+activate Router
+
+alt Token invalid
+    Router --> UI: 2.1.1. Show error
+    UI --> Author: 2.1.2. Error message
+else Role invalid
+    Router --> UI: 2.2.1. Show error
+    UI --> Author: 2.2.2. Error message
+end
+
+Router -> TextChapterController: 3. update(id, dto)
+activate TextChapterController
+
+TextChapterController -> TextChapterService: 4. updateChapter(id, dto)
+activate TextChapterService
+
+TextChapterService -> ChapterModel: 5. findById(id)
+activate ChapterModel
+ChapterModel -> MongoDB: 6. query chapter
+activate MongoDB
+MongoDB --> ChapterModel: 7. chapter / null
+deactivate MongoDB
+ChapterModel --> TextChapterService: 8. oldChapter
+deactivate ChapterModel
+
+opt Chapter not found
+    TextChapterService --> TextChapterController: 8.1.1. BadRequestException
+    TextChapterController --> Router: 8.1.2. Error response
+    Router --> UI: 8.1.3. Show error
+    UI --> Author: 8.1.4. Error message
+end
+
+opt Order changed
+    TextChapterService -> ChapterModel: 8.2. findOne(manga_id, order)
+    activate ChapterModel
+    ChapterModel -> MongoDB: 8.3. query conflict
+    activate MongoDB
+    MongoDB --> ChapterModel: 8.4. chapter / null
+    deactivate MongoDB
+    ChapterModel --> TextChapterService: 8.5. existingChapter
+    deactivate ChapterModel
+
+    opt Order conflict
+        TextChapterService --> TextChapterController: 8.5.1. BadRequestException
+        TextChapterController --> Router: 8.5.2. Error response
+        Router --> UI: 8.5.3. Show error
+        UI --> Author: 8.5.4. Error message
+    end
+end
+
+TextChapterService -> ChapterModel: 9. findByIdAndUpdate(id, chapter fields)
+activate ChapterModel
+ChapterModel -> MongoDB: 10. update chapter
+activate MongoDB
+MongoDB --> ChapterModel: 11. updated chapter
+deactivate MongoDB
+ChapterModel --> TextChapterService: 12. chapter
+deactivate ChapterModel
+
+opt Update text chapter
+    TextChapterService -> TextChapterModel: 12.1.1. findOneAndUpdate(chapter_id, content)
+    activate TextChapterModel
+    TextChapterModel -> MongoDB: 12.1.2. update text chapter
+    activate MongoDB
+    MongoDB --> TextChapterModel: 12.1.3. updated text
+    deactivate MongoDB
+    TextChapterModel --> TextChapterService: 12.1.4. textChapter
+    deactivate TextChapterModel
+end
+
+opt Content or title changed
+    ref over TextChapterService, MongoDB: 12.2.1. Subseqeunce - Add to queue for AI check policies
+
+    ref over TextChapterService, MongoDB: 12.2.2. Subseqeunce - AI check policies
+end
+
+opt Publish chapter (false -> true)
+    TextChapterService -> MangaModel: 12.3.1. findById(manga_id)
+    activate MangaModel
+    MangaModel -> MongoDB: 12.3.2. query manga
+    activate MongoDB
+    MongoDB --> MangaModel: 12.3.3. manga
+    deactivate MongoDB
+    MangaModel --> TextChapterService: 12.3.4. manga
+    deactivate MangaModel
+end
+
+TextChapterService --> TextChapterController: 13. {chapter, text}
+deactivate TextChapterService
+
+TextChapterController --> Router: 14. HTTP response
+deactivate TextChapterController
+Router --> UI: 15. Show updated chapter
+deactivate Router
+UI --> Author: 16. Chapter updated successfully
+deactivate UI
+deactivate Author

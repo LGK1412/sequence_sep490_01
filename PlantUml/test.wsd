@@ -1,0 +1,12 @@
+@startuml
+participant "Service" as S
+S -> S : doSomething()
+activate S
+
+S -> S : doSomethingElse()
+activate S
+deactivate S
+
+S --> S : return from doSomethingElse
+deactivate S
+@enduml

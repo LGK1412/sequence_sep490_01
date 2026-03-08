@@ -1,0 +1,88 @@
+bottomparticipants
+
+actor User
+boundary "Home / Recommend Section" as UI
+boundary Router
+control MangaController
+control MangaService
+entity HistoryModel
+entity RatingModel
+entity MangaModel
+database MongoDB
+
+User -> UI: 1. Open recommended stories
+activate User
+activate UI
+
+UI -> Router: 2. GET /api/manga/recomment/user/{userId}
+activate Router
+
+Router -> MangaController: 3. getRecommendStory(userId)
+activate MangaController
+
+opt User ID mismatch
+  MangaController --> Router: 3.1. BadRequestException
+  Router --> UI: 3.2. HTTP error
+  UI --> User: 3.3. Show error
+end
+
+MangaController -> MangaService: 4. getRecommendStory(userObjectId)
+activate MangaService
+
+MangaService -> HistoryModel: 5. find reading histories (limit 20)
+activate HistoryModel
+HistoryModel -> MongoDB: 6. query histories
+activate MongoDB
+MongoDB --> HistoryModel: 7. histories
+deactivate MongoDB
+HistoryModel --> MangaService: 8. return histories
+deactivate HistoryModel
+
+opt No reading history
+  MangaService -> MangaModel: 8.1. getAllManga(1,10)
+  activate MangaModel
+  MangaModel -> MongoDB: 8.2. aggregate top manga
+  activate MongoDB
+  MongoDB --> MangaModel: 8.3. result
+  deactivate MongoDB
+  MangaModel --> MangaService: 8.4. data
+  deactivate MangaModel
+end
+MangaService -> RatingModel: 9. find rating >= 4
+activate RatingModel
+RatingModel -> MongoDB: 10. query ratings
+activate MongoDB
+MongoDB --> RatingModel: 11. ratings
+deactivate MongoDB
+RatingModel --> MangaService: 12. return liked manga
+deactivate RatingModel
+
+MangaService -> MangaModel: 17. find genres & styles of liked manga
+activate MangaModel
+MangaModel -> MongoDB: 18. query manga
+activate MongoDB
+MongoDB --> MangaModel: 19. manga list
+deactivate MongoDB
+MangaModel --> MangaService: 20. genres & styles
+deactivate MangaModel
+
+MangaService -> MangaModel: 21. aggregate recommend pipeline
+activate MangaModel
+MangaModel -> MongoDB: 22. aggregate (filter, lookup, sort, facet)
+activate MongoDB
+MongoDB --> MangaModel: 23. recommend result
+deactivate MongoDB
+MangaModel --> MangaService: 24. { data, total }
+deactivate MangaModel
+
+MangaService --> MangaController: 25. return recommended stories
+deactivate MangaService
+
+MangaController --> Router: 26. HTTP response
+deactivate MangaController
+
+Router --> UI: 27. Response data
+deactivate Router
+UI --> User: 28. Show recommended manga
+deactivate UI
+deactivate User

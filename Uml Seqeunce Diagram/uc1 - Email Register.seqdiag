@@ -1,0 +1,50 @@
+actor User
+boundary "Register Page" as UI
+boundary Router
+control AuthController
+control AuthService
+boundary HashUtils
+control UserService
+entity UserModel
+database MongoDB
+
+User -> UI: 1. Enter username, email, password\nAccept terms & submit
+activate User
+activate UI
+
+UI -> Router: 2. POST /api/auth/register
+activate Router
+
+Router -> AuthController: 3. register(registerDto)
+activate AuthController
+
+AuthController -> AuthService: 4. register(registerDto)
+activate AuthService
+
+ref over AuthService, MongoDB:5. Subsequence - Check duplicate email and username
+
+alt Username already exists
+    AuthService --> AuthController: 5.1.1. Throw BadRequestException
+    AuthController --> Router: 5.1.2. HTTP 400 response
+    Router --> UI: 5.1.3. Show error message
+    UI --> User: 5.1.4. Username already exists
+else Email already exists
+    AuthService --> AuthController: 5.2.1. Throw BadRequestException
+    AuthController --> Router: 5.2.2. HTTP 400 response
+    Router --> UI: 5.2.3. Show error message
+    UI --> User: 5.2.4. Email already exists
+end
+
+ref over AuthService, MongoDB: 6. Subsequence - Hash password and create user
+
+AuthService --> AuthController: 7. Return { success: true }
+deactivate AuthService
+
+AuthController --> Router: 8. HTTP 200 response
+deactivate AuthController
+
+Router --> UI: 9. Registration success
+deactivate Router
+UI --> User: 10. Show success message
+deactivate UI
+deactivate User
