@@ -7,10 +7,10 @@ control AccessTokenGuard
 control RolesGuard
 control CommentsController
 control CommentsService
-entity CommentsModel
-entity ChaptersModel
-entity MangaModel
-entity UsersModel
+entity ":CommentsModel" as CommentsModel
+entity ":ChaptersModel" as ChaptersModel
+entity ":MangaModel" as MangaModel
+entity ":UsersModel" as UsersModel
 database MongoDB
 
 Admin -> UI: 1. Open /admin/comments

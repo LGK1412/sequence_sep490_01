@@ -3,9 +3,9 @@ bottomparticipants
 title Subsequence - View Story Info
 
 control MangaService
-entity ChapterModel
-entity ChapterPurchaseModel
-entity RatingModel
+entity ":ChapterModel" as ChapterModel
+entity ":ChapterPurchaseModel" as ChapterPurchaseModel
+entity ":RatingModel" as RatingModel
 database MongoDB
 
 MangaService -> ChapterModel: 1. find published chapters
@@ -18,27 +18,34 @@ deactivate MongoDB
 ChapterModel --> MangaService: 4. return chapters
 deactivate ChapterModel
 
-opt User logged in
-  MangaService -> ChapterPurchaseModel: 4.1. find purchased chapters
-  activate ChapterPurchaseModel
-  ChapterPurchaseModel -> MongoDB: 4.2. query purchases
-  activate MongoDB
-  MongoDB --> ChapterPurchaseModel: 4.3. purchased chapters
-  deactivate MongoDB
-  ChapterPurchaseModel --> MangaService: 4.4. return purchases
-  deactivate ChapterPurchaseModel
-end
-
-MangaService -> MangaService: 5. map chapters (locked / purchased)
+MangaService -> MangaService: 5. Check user
 activate MangaService
 space
 deactivate MangaService
-MangaService -> RatingModel: 6. aggregate rating summary
+
+opt User logged in
+  MangaService -> ChapterPurchaseModel: 5.1. find purchased chapters
+  activate ChapterPurchaseModel
+  ChapterPurchaseModel -> MongoDB: 5.2. query purchases
+  activate MongoDB
+  MongoDB --> ChapterPurchaseModel: 5.3. purchased chapters
+  deactivate MongoDB
+  ChapterPurchaseModel --> MangaService: 5.4. return purchases
+  deactivate ChapterPurchaseModel
+end
+
+MangaService -> MangaService: 6. map chapters (locked / purchased)
+activate MangaService
+space
+deactivate MangaService
+
+MangaService -> RatingModel: 7. aggregate rating summary
 activate RatingModel
-RatingModel -> MongoDB: 7. aggregate ratings
+RatingModel -> MongoDB: 8. aggregate ratings
 activate MongoDB
-MongoDB --> RatingModel: 8. rating summary
+MongoDB --> RatingModel: 9. rating summary
 deactivate MongoDB
-RatingModel --> MangaService: 9. return summary
+RatingModel --> MangaService: 10. return summary
 deactivate RatingModel
+
 deactivate MangaService

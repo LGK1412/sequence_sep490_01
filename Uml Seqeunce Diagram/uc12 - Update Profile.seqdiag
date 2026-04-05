@@ -5,7 +5,7 @@ boundary "Profile Page" as UI
 boundary Router
 control UserController
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 entity FileSystem
 
@@ -16,64 +16,98 @@ activate UI
 UI -> Router: 2. PATCH /api/user/profile (multipart/form-data)
 activate Router
 
-Router -> UserController: 3. updateProfile(body, avatar)
+Router -> UserController: 3. updateProfile(body, file, req)
 activate UserController
 
-loop Invalid file type / size
-  UserController --> Router: 3.1. BadRequestException
-  Router --> UI: 3.2. HTTP error
-  UI --> User: 3.3. Show error
+UserController -> UserController: 4. Check file
+activate UserController
+space
+deactivate UserController
+
+alt Invalid file type / size
+  UserController --> Router: 4.1 BadRequestException
+  Router --> UI: 4.2 HTTP error
+  UI --> User: 4.3 Show error
 end
 
-UserController -> UserService: 4. update profile
+UserController -> UserService: 5. updateProfile(user, updateData)
 activate UserService
 
-opt Invalid user payload
-  UserService --> UserController: 4.1. BadRequestException
-  UserController --> Router: 4.2. HTTP error
-  Router --> UI: 4.3. HTTP error
-  UI --> User: 4.4. Show error
-end
-
-UserService -> UserModel: 5. find user
-activate UserModel
-UserModel -> MongoDB: 6. query
-activate MongoDB
-MongoDB --> UserModel: 7. existing user
-deactivate MongoDB
-UserModel --> UserService: 8. result
-deactivate UserModel
-
-opt Username already exists
-  UserService --> UserController: 8.1. BadRequestException
-  UserController --> Router: 8.2. HTTP error
-  Router --> UI: 8.3. HTTP error
-  UI --> User: 8.4. Show error
-end
-
-UserService -> UserModel: 9. findByIdAndUpdate()
-activate UserModel
-UserModel -> MongoDB: 10. update user
-activate MongoDB
-MongoDB --> UserModel: 11. updated user
-deactivate MongoDB
-UserModel --> UserService: 12. return user
-deactivate UserModel
-
-UserService --> UserController: 13. success result
+UserService -> UserService: 6. Check user payload
+activate UserService
+space
 deactivate UserService
 
-opt Avatar uploaded & update success
-  UserController -> FileSystem: 13.1. write avatar file
-  activate FileSystem
-  FileSystem --> UserController: 13.2. file saved
-  deactivate FileSystem 
+alt Invalid user payload
+  UserService --> UserController: 6.1 BadRequestException
+  UserController --> Router: 6.2 HTTP error
+  Router --> UI: 6.3 HTTP error
+  UI --> User: 6.4 Show error
 end
 
-UserController --> Router: 14. HTTP success response
+UserService -> UserModel: 7. findOne(username)
+activate UserModel
+UserModel -> MongoDB: 8. query username
+activate MongoDB
+MongoDB --> UserModel: 9. existing user?
+deactivate MongoDB
+UserModel --> UserService: 10. result
+deactivate UserModel
+
+UserService -> UserService: 11. Check username
+activate UserService
+space
+deactivate UserService
+
+alt Username already exists
+  UserService --> UserController: 11.1 BadRequestException
+  UserController --> Router: 11.2 HTTP error
+  Router --> UI: 11.3 HTTP error
+  UI --> User: 11.4 Show error
+end
+
+UserService -> UserModel: 12. findByIdAndUpdate()
+activate UserModel
+UserModel -> MongoDB: 13. update user
+activate MongoDB
+MongoDB --> UserModel: 14. updated user
+deactivate MongoDB
+UserModel --> UserService: 15. return user
+deactivate UserModel
+
+UserService -> UserService: 16. Check update
+activate UserService
+space
+deactivate UserService
+
+alt Update failed (user null)
+  UserService --> UserController: 16.1 BadRequestException
+  UserController --> Router: 16.2 HTTP error
+  Router --> UI: 16.3 HTTP error
+  UI --> User: 16.4 Show error
+end
+
+UserService --> UserController: 17. success result
+deactivate UserService
+
+UserController -> UserController: 18. Check avatar upload
+activate UserController
+space
 deactivate UserController
-Router --> UI: 15. Response data
+
+opt Avatar uploaded & success
+  UserController -> FileSystem: 18.1 mkdir + writeFile
+  activate FileSystem
+  FileSystem --> UserController: 18.2 file saved
+  deactivate FileSystem
+end
+
+UserController --> Router: 19. HTTP success response
+deactivate UserController
+
+Router --> UI: 20. Response data
 deactivate Router
-UI --> User: 16. Show updated profile
+
+UI --> User: 21. Show updated profile
 deactivate UI
 deactivate User

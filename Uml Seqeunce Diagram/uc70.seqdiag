@@ -1,0 +1,83 @@
+bottomparticipants
+
+actor User
+boundary "Shop Page (Emoji Pack Shop)" as UI
+boundary Router
+control EmojiPackController
+control EmojiPackService
+control UserService
+entity ":EmojiPackModel" as EmojiPackModel
+entity ":UserModel" as UserModel
+database MongoDB
+
+User -> UI: 1. Open emoji pack shop
+activate User
+activate UI
+
+UI -> Router: 2. GET /emoji-pack/get-pack-for-shop?page&limit
+activate Router
+
+Router -> EmojiPackController: 3. getPackForShop(page,limit,req)
+activate EmojiPackController
+
+EmojiPackController -> EmojiPackService: 4. getPackForShop(page,limit,payload)
+activate EmojiPackService
+
+EmojiPackService -> UserService: 5. checkUser(user_id)
+activate UserService
+UserService -> UserModel: 5.1 find user
+activate UserModel
+UserModel -> MongoDB: 5.2 query user
+activate MongoDB
+MongoDB --> UserModel: 5.3 user data
+deactivate MongoDB
+UserModel --> UserService: 5.4 result
+deactivate UserModel
+UserService --> EmojiPackService: 5.5 valid user
+deactivate UserService
+
+EmojiPackService -> UserService: 6. getEmojiPackOwn(user_id)
+activate UserService
+UserService -> MongoDB: 6.1 query owned packs
+activate MongoDB
+MongoDB --> UserService: 6.2 owned packs
+deactivate MongoDB
+UserService --> EmojiPackService: 6.3 return list
+deactivate UserService
+
+EmojiPackService -> EmojiPackModel: 7. find packs price > 0
+activate EmojiPackModel
+EmojiPackModel -> MongoDB: 7.1 query packs (skip,limit,sort,populate)
+activate MongoDB
+MongoDB --> EmojiPackModel: 7.2 pack list
+deactivate MongoDB
+EmojiPackModel --> EmojiPackService: 7.3 packs
+deactivate EmojiPackModel
+
+EmojiPackService -> EmojiPackModel: 8. countDocuments(price > 0)
+activate EmojiPackModel
+EmojiPackModel -> MongoDB: 8.1 count packs
+activate MongoDB
+MongoDB --> EmojiPackModel: 8.2 total
+deactivate MongoDB
+EmojiPackModel --> EmojiPackService: 8.3 total
+deactivate EmojiPackModel
+
+EmojiPackService -> EmojiPackService: 9. Filter owned packs
+activate EmojiPackService
+space
+deactivate EmojiPackService
+
+EmojiPackService --> EmojiPackController: 10. Return packs + pagination
+deactivate EmojiPackService
+
+EmojiPackController --> Router: 11. HTTP 200 response
+deactivate EmojiPackController
+
+Router --> UI: 12. Shop pack list
+deactivate Router
+
+UI --> User: 13. Display packs for purchase
+
+deactivate UI
+deactivate User

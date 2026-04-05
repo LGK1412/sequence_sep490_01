@@ -5,7 +5,7 @@ boundary "Admin UI" as UI
 boundary Router
 control CommentController
 control CommentService
-entity CommentModel
+entity ":CommentModel" as CommentModel
 control AuditService
 database MongoDB
 
@@ -31,44 +31,47 @@ deactivate MongoDB
 CommentModel --> CommentService: 8. result
 deactivate CommentModel
 
-opt Comment not found
-    CommentService --> CommentController: 8.1 Throw BadRequestException
-    CommentController --> Router: 8.2 HTTP 400
-    Router --> UI: 8.3 Error response
-    UI --> Staff: 8.4 Comment does not exist
-
-end
-
-CommentService -> CommentService: 9. Toggle is_delete flag
+CommentService -> CommentService: 9. Check comment exists
 activate CommentService
 space
 deactivate CommentService
 
-CommentService -> CommentModel: 10. save()
+opt Comment not found
+    CommentService --> CommentController: 9.1 Throw BadRequestException
+    CommentController --> Router: 9.2 HTTP 400
+    Router --> UI: 9.3 Error response
+    UI --> Staff: 9.4 Comment does not exist
+end
+
+CommentService -> CommentService: 10. Toggle is_delete flag
+activate CommentService
+space
+deactivate CommentService
+
+CommentService -> CommentModel: 11. save()
 activate CommentModel
-CommentModel -> MongoDB: 11. update comment
+CommentModel -> MongoDB: 12. update comment
 activate MongoDB
-MongoDB --> CommentModel: 12. saved
+MongoDB --> CommentModel: 13. saved
 deactivate MongoDB
-CommentModel --> CommentService: 13. done
+CommentModel --> CommentService: 14. done
 deactivate CommentModel
 
-CommentService -> AuditService: 14. createLog(auditData)
+CommentService -> AuditService: 15. createLog(auditData)
 activate AuditService
-AuditService -> MongoDB: 15. insert audit log
+AuditService -> MongoDB: 16. insert audit log
 activate MongoDB
-MongoDB --> AuditService: 16. saved
+MongoDB --> AuditService: 17. saved
 deactivate MongoDB
-AuditService --> CommentService: 17. done
+AuditService --> CommentService: 18. done
 deactivate AuditService
 
-CommentService --> CommentController: 18. success result
+CommentService --> CommentController: 19. success result
 deactivate CommentService
-CommentController --> Router: 19. HTTP 200 + message
+CommentController --> Router: 20. HTTP 200 + message
 deactivate CommentController
-Router --> UI: 20. Success response
+Router --> UI: 21. Success response
 deactivate Router
-UI --> Staff: 21. Show result message
+UI --> Staff: 22. Show result message
 deactivate UI
 deactivate Staff
-@enduml

@@ -4,7 +4,7 @@ boundary "Notification Page" as UI
 boundary Router
 control NotificationController
 control NotificationService
-entity NotificationModel
+entity ":NotificationModel" as NotificationModel
 database MongoDB
 
 User -> UI: 1. Open My Notifications
@@ -17,32 +17,37 @@ activate Router
 Router -> NotificationController: 3. getMyNotifications()
 activate NotificationController
 
-opt Missing userId in token
-  NotificationController --> Router: 3.1. BadRequestException
-  Router --> UI: 3.2. HTTP error
-  UI --> User: 3.3. Show error
-end
-
-NotificationController -> NotificationService: 4. get notifications
-activate NotificationService
-
-NotificationService -> NotificationModel: 5. find notifications
-activate NotificationModel
-NotificationModel -> MongoDB: 6. get notifications
-activate MongoDB
-MongoDB --> NotificationModel: 7. notification list
-deactivate MongoDB
-NotificationModel --> NotificationService: 8. return notifications
-deactivate NotificationModel
-
-NotificationService --> NotificationController: 9. return notifications
-deactivate NotificationService
-
-NotificationController --> Router: 10. HTTP response
+NotificationController -> NotificationController: 4. Check userId
+activate NotificationController
+space
 deactivate NotificationController
 
-Router --> UI: 11. Response data
+opt Missing userId in token
+  NotificationController --> Router: 4.1. BadRequestException
+  Router --> UI: 4.2. HTTP error
+  UI --> User: 4.3. Show error
+end
+
+NotificationController -> NotificationService: 5. get notifications
+activate NotificationService
+
+NotificationService -> NotificationModel: 6. find notifications
+activate NotificationModel
+NotificationModel -> MongoDB: 7. get notifications
+activate MongoDB
+MongoDB --> NotificationModel: 8. notification list
+deactivate MongoDB
+NotificationModel --> NotificationService: 9. return notifications
+deactivate NotificationModel
+
+NotificationService --> NotificationController: 10. return notifications
+deactivate NotificationService
+
+NotificationController --> Router: 11. HTTP response
+deactivate NotificationController
+
+Router --> UI: 12. Response data
 deactivate Router
-UI --> User: 12. Show notifications
+UI --> User: 13. Show notifications
 deactivate UI
 deactivate User

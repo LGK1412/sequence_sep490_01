@@ -4,11 +4,11 @@ actor Admin
 boundary "Emoji Page" as UI
 boundary Router
 control "EmojiPackController" as Controller
-entity "EmojiService" as EmojiService
-entity "File Storage" as FS
-entity "EmojiModel" as EmojiModel
-entity "EmojiPackService" as PackService
-entity "EmojiPackModel" as PackModel
+control "EmojiService" as EmojiService
+participant "File Storage" as FS
+entity ":EmojiModel" as EmojiModel
+control "EmojiPackService" as PackService
+entity ":EmojiPackModel" as PackModel
 database MongoDB
 
 Admin -> UI : 1. Click "Create" button

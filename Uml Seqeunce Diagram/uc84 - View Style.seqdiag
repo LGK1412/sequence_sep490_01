@@ -5,7 +5,7 @@ boundary "Style Management UI" as UI
 boundary Router
 control StylesController
 control StylesService
-entity StylesModel
+entity ":StylesModel" as StylesModel
 database MongoDB
 
 Admin -> UI: 1. Open Style Management page

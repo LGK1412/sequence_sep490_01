@@ -5,17 +5,20 @@ boundary "Check-in Modal" as UI
 boundary Router
 control "CheckinController" as Controller
 entity "CheckinService" as Service
-entity "CheckinModel" as CheckinModel
-entity "UserModel" as UserModel
+entity ":CheckinModel" as CheckinModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 A -> UI : 1. Click "Check-in" button
 activate A
 activate UI
+
 UI -> Router : 2. POST /api/checkin/today
 activate Router
+
 Router -> Controller : 3. checkinToday(req)
 activate Controller
+
 Controller -> Service : 4. checkinToday(userId, role)
 activate Service
 
@@ -28,36 +31,42 @@ deactivate MongoDB
 CheckinModel --> Service : 8. record
 deactivate CheckinModel
 
+Service -> Service: 9. Check already checked today
+activate Service
+space
+deactivate Service
+
 alt already checked
-    Service --> Controller : 8.1.1. BadRequestException
-    Controller --> Router : 8.1.2. HTTP response (400 error)
-    Router --> UI : 8.1.3. error message
-    UI --> A : 8.1.4. Display "Already checked\n in today!" message
-else not checked
-    Service -> UserModel : 8.2.1. Find user
+    Service --> Controller : 9.1 BadRequestException
+    Controller --> Router : 9.2 HTTP response (400 error)
+    Router --> UI : 9.3 error message
+    UI --> A : 9.4 Display "Already checked in today!" message
+end
+    Service -> UserModel : 10. Find user
     activate UserModel
-    UserModel -> MongoDB : 8.2.2. Execute query
+    UserModel -> MongoDB : 11. Execute query
     activate MongoDB
-    MongoDB --> UserModel : 8.2.3. document
+    MongoDB --> UserModel : 12. document
     deactivate MongoDB
-    UserModel --> Service : 8.2.4. user
+    UserModel --> Service : 13. user
     deactivate UserModel
-    Service -> CheckinModel : 8.2.5. Save record
+
+    Service -> CheckinModel : 14. Save record
     activate CheckinModel
-    CheckinModel --> Service : 8.2.6. success
+    CheckinModel --> Service : 15. success
     deactivate CheckinModel
-    Service -> UserModel : 8.2.7. updated points
+
+    Service -> UserModel : 16. updated points
     activate UserModel
-    UserModel --> Service: 8.2.8. success
+    UserModel --> Service: 17. success
     deactivate UserModel
-    Service --> Controller : 8.2.9. success
+
+    Service --> Controller : 18. success
     deactivate Service
-    Controller --> Router : 8.2.10. HTTP response (200 OK)
+    Controller --> Router : 19. HTTP response (200 OK)
     deactivate Controller
-    Router --> UI : 8.2.11. success message
+    Router --> UI : 20. success message
     deactivate Router
-    UI --> A : 8.2.12. Disable "Check-in" button &\n Mark and claim reward
+    UI --> A : 21. Disable "Check-in" button & Mark and claim reward
     deactivate UI
     deactivate A
-end
-@enduml

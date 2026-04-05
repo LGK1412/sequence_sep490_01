@@ -1,0 +1,926 @@
+103	View Chapter Content	Content Moderator (Content), 
+104	Ban Story/Chapter	Content Moderator (Content), 
+cơ bản thì admin đã có một chức năng check đc policy khi author đăng truyện và vừa quản lý check nên có coi đc
+nma vì chưa có 
+cơ bản là cần một thứ j đó quản lý rõ ràng trong việc quản lý chapter mời bạn coi code moderationn (check chapter vs policy bằng AI nghe sau khi author đăng truyện)
+"use client";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { ModerationRecord } from "@/lib/typesLogs";
+import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+
+export function FindingsPanel({
+  record,
+  policyIndex,
+}: {
+  record: ModerationRecord;
+  policyIndex?: Record<string, string>; // key: subCategory/slug/policy code → title
+}) {
+  const findings = record.ai_findings || [];
+
+  const labelOf = (sectionId: string) => {
+    return policyIndex?.[sectionId] || // ưu tiên title từ policy
+      ({
+        violence: "Violence & Gore",
+        sexual: "Sexual Content",
+        language: "Offensive Language",
+        harassment: "Harassment & Bullying",
+        misinformation: "Misinformation",
+        spam: "Spam",
+      } as Record<string, string>)[sectionId] ||
+      sectionId;
+  };
+
+  return (
+    <Card className="p-6 h-full">
+      <h3 className="font-semibold mb-4">Policy Violations Found</h3>
+
+      {findings.length === 0 ? (
+        <div className="flex items-center justify-center h-64 text-center">
+          <div>
+            <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No violations detected</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {findings.map((f, idx) => (
+            <div key={idx} className="border border-border rounded-lg p-4">
+              <div className="flex items-start gap-3 mb-2">
+                {f.verdict === "pass" && <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />}
+                {f.verdict === "warn" && <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" />}
+                {f.verdict === "block" && <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />}
+
+                <div className="flex-1">
+                  <p className="font-medium text-sm">{labelOf(f.sectionId)}</p>
+                  <Badge
+                    variant="outline"
+                    className={
+                      f.verdict === "pass"
+                        ? "bg-green-50 text-green-700 border-green-200"
+                        : f.verdict === "warn"
+                        ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                        : "bg-red-50 text-red-700 border-red-200"
+                    }
+                  >
+                    {f.verdict.toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
+              <p className="text-sm text-muted-foreground mt-2">{f.rationale}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+// src/app/admin/moderation/queue/page.tsx
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { QueueFilters } from "@/components/admin/moderation/queue-filters";
+import { QueueTable } from "@/components/admin/moderation/queue-table";
+import type { AIStatus, QueueItem } from "@/lib/typesLogs";
+import { Download } from "lucide-react";
+import AdminLayout from "@/app/admin/adminLayout/page";
+import { fetchQueue } from "@/lib/moderation";
+
+export default function ModerationQueuePage() {
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [filters, setFilters] = useState<{ search: string; status: AIStatus | null; riskRange: [number, number] }>({
+    search: "",
+    status: null,
+    riskRange: [0, 100],
+  });
+  const [data, setData] = useState<QueueItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      setErr(null);
+      try {
+        // fetchQueue đã return QueueItem[]
+        const rows = await fetchQueue(filters.status ? { status: filters.status } : undefined);
+        setData(rows);
+      } catch (e: any) {
+        setErr(e?.message || "Load queue failed");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [filters.status]);
+
+  const filteredItems = useMemo(() => {
+    const s = filters.search.toLowerCase();
+    return data.filter((item) => {
+      const matchesSearch =
+        !s ||
+        item.title.toLowerCase().includes(s) ||
+        item.author.toLowerCase().includes(s) ||
+        item.chapterId.toLowerCase().includes(s);
+
+      const matchesRisk = item.risk_score >= filters.riskRange[0] && item.risk_score <= filters.riskRange[1];
+      return matchesSearch && matchesRisk;
+    });
+  }, [data, filters]);
+
+  const handleAction = (id: string, action: string) => {
+    console.log(`Action ${action} on ${id}`);
+  };
+
+  return (
+    <AdminLayout>
+      <div className="p-6 space-y-6">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Admin</span><span>/</span><span>Moderation</span><span>/</span><span className="text-foreground">Queue</span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Moderation Queue</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {loading ? "Loading..." : `${filteredItems.length} of ${data.length} items`}
+              {err && <span className="text-red-600 ml-2">{err}</span>}
+            </p>
+          </div>
+          <Button variant="outline">
+            <Download className="w-4 h-4 mr-2" />
+            Export
+          </Button>
+        </div>
+
+        <QueueFilters onFiltersChange={setFilters} />
+
+        {selectedItems.size > 0 && (
+          <Card className="p-4 bg-blue-50 border-blue-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">
+                {selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} selected
+              </span>
+              <div className="flex gap-2">
+                <Button size="sm" variant="default">Approve Selected</Button>
+                <Button size="sm" variant="destructive">Reject Selected</Button>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        <QueueTable
+          items={filteredItems}
+          onSelect={(id) => {
+            const next = new Set(selectedItems);
+            next.has(id) ? next.delete(id) : next.add(id);
+            setSelectedItems(next);
+          }}
+          onAction={handleAction}
+          loading={loading}
+        />
+      </div>
+    </AdminLayout>
+  );
+}
+"use client"
+
+import { useState } from "react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Slider } from "@/components/ui/slider"
+import { Search, X } from "lucide-react"
+
+interface QueueFiltersProps {
+  onFiltersChange: (filters: any) => void
+}
+
+export function QueueFilters({ onFiltersChange }: QueueFiltersProps) {
+  const [search, setSearch] = useState("")
+  const [status, setStatus] = useState("all")
+  const [riskRange, setRiskRange] = useState([0, 100])
+
+  const handleFilterChange = () => {
+    onFiltersChange({ search, status: status !== "all" ? status : null, riskRange })
+  }
+
+  return (
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center gap-2">
+        <Search className="w-4 h-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by title, author, or chapter ID..."
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            handleFilterChange()
+          }}
+          className="flex-1"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="text-sm font-medium block mb-2">AI Status</label>
+          <Select
+            value={status}
+            onValueChange={(value) => {
+              setStatus(value)
+              handleFilterChange()
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value="AI_PENDING">Pending</SelectItem>
+              <SelectItem value="AI_WARN">Warning</SelectItem>
+              <SelectItem value="AI_BLOCK">Blocked</SelectItem>
+              <SelectItem value="AI_PASSED">Passed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <label className="text-sm font-medium block mb-2">
+            Risk Score: {riskRange[0]} - {riskRange[1]}
+          </label>
+          <Slider
+            min={0}
+            max={100}
+            step={5}
+            value={riskRange}
+            onValueChange={(value) => {
+              setRiskRange(value as [number, number])
+              handleFilterChange()
+            }}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex items-end gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearch("")
+              setStatus("all")
+              setRiskRange([0, 100])
+              onFiltersChange({ search: "", status: null, riskRange: [0, 100] })
+            }}
+          >
+            <X className="w-4 h-4 mr-1" />
+            Reset
+          </Button>
+        </div>
+      </div>
+    </Card>
+  )
+}
+"use client";
+
+import { useState } from "react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { RiskMeter } from "./risk-meter";
+import { StatusBadge } from "./status-badge";
+import type { QueueItem } from "@/lib/typesLogs";
+import { Eye, Edit } from "lucide-react";
+import Link from "next/link";
+
+interface QueueTableProps {
+  items: QueueItem[];
+  onSelect: (id: string) => void;
+  onAction: (id: string, action: string) => void;
+  loading?: boolean;
+}
+
+export function QueueTable({ items, onSelect, onAction, loading }: QueueTableProps) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleSelect = (id: string) => {
+    const next = new Set(selectedIds);
+    next.has(id) ? next.delete(id) : next.add(id);
+    setSelectedIds(next);
+    onSelect(id);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === items.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(items.map((i) => i.chapterId)));
+  };
+
+  return (
+    <div className="border border-border rounded-lg overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-muted">
+            <TableHead className="w-12">
+              <Checkbox
+                checked={items.length > 0 && selectedIds.size === items.length}
+                onCheckedChange={toggleSelectAll}
+                disabled={loading}
+              />
+            </TableHead>
+            <TableHead>Chapter</TableHead>
+            <TableHead>Author</TableHead>
+            <TableHead>Risk Score</TableHead>
+            <TableHead>AI Status</TableHead>
+            <TableHead>Labels</TableHead>
+            <TableHead>Updated</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+
+        <TableBody>
+          {!loading &&
+            items.map((item, index) => (
+              <TableRow key={`${item.chapterId || "row"}-${index}`} className="hover:bg-muted/50">
+                <TableCell>
+                  <Checkbox
+                    checked={selectedIds.has(item.chapterId)}
+                    onCheckedChange={() => toggleSelect(item.chapterId)}
+                    disabled={loading}
+                  />
+                </TableCell>
+
+                <TableCell className="font-medium">{item.title}</TableCell>
+                <TableCell>{item.author}</TableCell>
+
+                <TableCell>
+                  <RiskMeter score={item.risk_score} />
+                </TableCell>
+
+                <TableCell>
+                  {/* Fallback để không crash nếu ai_status chưa có */}
+                  <StatusBadge status={item.ai_status ?? "AI_PENDING"} />
+                </TableCell>
+
+                <TableCell>
+                  <div className="flex flex-wrap gap-1">
+                    {item.labels.slice(0, 2).map((label) => (
+                      <span key={`${item.chapterId}-${label}`} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        {label}
+                      </span>
+                    ))}
+                    {item.labels.length > 2 && (
+                      <span className="text-xs text-muted-foreground">+{item.labels.length - 2}</span>
+                    )}
+                  </div>
+                </TableCell>
+
+                <TableCell className="text-sm text-muted-foreground">
+                  {new Date(item.updatedAt).toLocaleDateString()}
+                </TableCell>
+
+                <TableCell className="text-right">
+                  <div className="flex items-center justify-end gap-2">
+                    <Link href={`/admin/moderation/workspace?chapterId=${item.chapterId}`}>
+                      <Button size="sm" variant="ghost" title="Open Workspace">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => onAction(item.chapterId, "approve")}
+                      title="Approve"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+
+          {items.length === 0 && !loading && (
+            <TableRow>
+              <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
+                No items
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
+interface RiskMeterProps {
+  score: number
+}
+
+export function RiskMeter({ score }: RiskMeterProps) {
+  const getColor = () => {
+    if (score < 30) return "bg-green-500"
+    if (score < 60) return "bg-yellow-500"
+    return "bg-red-500"
+  }
+
+  const getLabel = () => {
+    if (score < 30) return "Low"
+    if (score < 60) return "Medium"
+    return "High"
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+        <div className={`h-full ${getColor()}`} style={{ width: `${score}%` }} />
+      </div>
+      <span className="text-sm font-medium whitespace-nowrap">{score}</span>
+      <span className="text-xs text-muted-foreground">{getLabel()}</span>
+    </div>
+  )
+}
+import { Badge } from "@/components/ui/badge"
+import type { AIStatus } from "@/lib/typesLogs"
+
+interface StatusBadgeProps {
+  status: AIStatus
+}
+
+export function StatusBadge({ status }: StatusBadgeProps) {
+  const config = {
+    AI_PENDING: {
+      variant: "outline" as const,
+      label: "Pending",
+      className: "bg-blue-50 text-blue-700 border-blue-200",
+    },
+    AI_WARN: {
+      variant: "outline" as const,
+      label: "Warning",
+      className: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    },
+    AI_BLOCK: { variant: "outline" as const, label: "Blocked", className: "bg-red-50 text-red-700 border-red-200" },
+    AI_PASSED: {
+      variant: "outline" as const,
+      label: "Passed",
+      className: "bg-green-50 text-green-700 border-green-200",
+    },
+  }
+
+  const c = config[status]
+  return <Badge className={c.className}>{c.label}</Badge>
+}
+// lib/moderation.ts
+import axios from "axios";
+import type { AIStatus, QueueItem, ModerationRecord, Decision } from "./typesLogs";
+
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL, // KHÔNG thêm /api ở đây
+  withCredentials: true,                    // dùng cookie access_token
+});
+
+// ---- MAPPERS (BE -> FE) ----
+const mapQueueRow = (r: any): QueueItem => ({
+  chapterId: r.chapter_id?.toString?.() ?? r.chapter_id ?? "",
+  title: r.chapterTitle ?? r.title ?? "-",
+  author: r.authorName ?? r.author ?? "-",
+  risk_score: r.risk_score ?? 0,
+  ai_status: r.status as AIStatus,
+  labels: r.labels ?? [],
+  updatedAt: r.updatedAt ?? r.createdAt ?? new Date().toISOString(),
+});
+
+export const mapModerationRecord = (r: any): ModerationRecord => ({
+  chapterId: r.chapter_id?.toString?.() ?? r.chapterId ?? "",
+  ai_status: r.status as AIStatus,
+  risk_score: r.risk_score ?? 0,
+  labels: r.labels ?? [],
+  policy_version: r.policy_version ?? "1.0.0",
+  ai_findings: (r.ai_findings ?? []).map((f: any) => ({
+    sectionId: f.sectionId ?? f.policy ?? "general",
+    verdict: f.verdict ?? "warn",
+    rationale: f.rationale ?? f.reason ?? "",
+  })),
+  ai_model: r.ai_model ?? undefined,
+  updatedAt: r.updatedAt ?? new Date().toISOString(),
+
+  // 👇 Quan trọng: map thêm các optional field cho Workspace
+  chapterTitle: r.chapterTitle ?? r.title,    // BE record đang trả chapterTitle
+  authorName: r.authorName ?? r.author,       // record hiện CHƯA trả — sẽ fallback bên dưới
+  contentHtml: r.contentHtml ?? r.html ?? r.content, // nếu BE có trả
+});
+
+// ---- API CALLS ----
+
+// Hàng chờ moderation
+export async function fetchQueue(params?: { status?: AIStatus; limit?: number }) {
+  const res = await api.get("/moderation/queue", { params });
+  return (res.data ?? []).map(mapQueueRow) as QueueItem[];
+}
+
+// Lấy record moderation 1 chương (xem Workspace)
+// 👉 yêu cầu BE có endpoint này; nếu chưa có, tạm fallback đọc queue rồi find theo chapterId
+export async function fetchModerationRecord(chapterId: string) {
+  // Lấy record chính
+  const res = await api.get(`/moderation/record/${chapterId}`);
+  let rec = mapModerationRecord(res.data);
+
+  // Fallback: nếu thiếu title/author thì lấy từ hàng chờ (queue)
+  if (!rec.chapterTitle || !rec.authorName) {
+    try {
+      const q = await fetchQueue(); // đã map QueueItem { title, author, ...}
+      const hit = q.find(r => r.chapterId === chapterId);
+      if (hit) {
+        rec = {
+          ...rec,
+          chapterTitle: rec.chapterTitle ?? hit.title,
+          authorName: rec.authorName ?? hit.author,
+        };
+      }
+    } catch { /* kệ – best effort */ }
+  }
+
+  return rec;
+}
+
+// Quyết định của admin
+export async function decideModeration(chapterId: string, action: Decision, note?: string) {
+  return api.post("/moderation/decide", { chapterId, action, note });
+}
+
+// Yêu cầu chạy lại AI
+export async function recheckModeration(chapterId: string, opts?: { policyVersion?: string; contentHash?: string }) {
+  return api.post("/moderation/recheck", { chapterId, ...opts });
+}
+
+// Invalidate khi nội dung đã sửa (tắt kết quả AI cũ)
+export async function invalidateAi(chapterId: string, contentHash: string) {
+  return api.patch("/moderation/invalidate", { chapterId, contentHash });
+}
+
+// (giữ nguyên) Lấy policy TERM/posting cho FE
+export async function fetchPostingPolicies() {
+  const res = await api.get("/api/policies", { params: { mainType: "TERM" } });
+  return (res.data ?? []).filter(
+    (p: any) => p.subCategory === "posting" && p.status === "Active" && p.isPublic
+  );
+}
+export type AIStatus = 'AI_PENDING' | 'AI_WARN' | 'AI_BLOCK' | 'AI_PASSED';
+export type Decision = 'approve' | 'reject' | 'request_changes';
+
+export interface QueueItem {
+  chapterId: string;
+  title: string;
+  author: string;
+  risk_score: number;
+  ai_status: AIStatus;
+  labels: string[];
+  updatedAt: string;
+}
+
+export interface Finding {
+  sectionId: string;
+  verdict: 'pass' | 'warn' | 'block';
+  rationale: string;
+}
+
+export interface ModerationRecord {
+  chapterId: string;
+  ai_status: AIStatus;
+  risk_score: number;
+  labels: string[];
+  policy_version: string;
+  ai_findings: Finding[];
+  ai_model?: string;
+  updatedAt: string;
+
+  /** Optional – BE có thì hiển thị, không có thì dùng fallback */
+  chapterTitle?: string;
+  authorName?: string;
+  contentHtml?: string; // nếu BE trả kèm html chương
+}
+"use client";
+
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import AdminLayout from "@/app/admin/adminLayout/page";
+import { Card } from "@/components/ui/card";
+import { ChapterSummary } from "@/components/admin/moderation/workspace/chapter-summary";
+import { FindingsPanel } from "@/components/admin/moderation/workspace/findings-panel";
+import { ContentViewer } from "@/components/admin/moderation/workspace/content-viewer";
+import type { Decision, ModerationRecord } from "@/lib/typesLogs";
+import { fetchModerationRecord, decideModeration, recheckModeration } from "@/lib/moderation";
+
+export default function ModerationWorkspacePage() {
+  const searchParams = useSearchParams();
+  const chapterId = searchParams.get("chapterId") ?? "";
+  const [record, setRecord] = useState<ModerationRecord | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [actLoading, setActLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const load = async () => {
+    if (!chapterId) return;
+    setLoading(true); setErr(null);
+    try {
+      const r = await fetchModerationRecord(chapterId);
+      setRecord(r);
+    } catch (e: any) {
+      setErr(e?.message || "Load record failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [chapterId]);
+
+  const onDecision = async (action: Decision, note?: string) => {
+    if (!record) return;
+    setActLoading(true);
+    try {
+      await decideModeration(record.chapterId, action, note);
+      await load(); // refresh trạng thái
+    } catch (e: any) {
+      alert(e?.message || "Action failed");
+    } finally {
+      setActLoading(false);
+    }
+  };
+
+  const onRecheck = async () => {
+    if (!record) return;
+    setActLoading(true);
+    try {
+      await recheckModeration(record.chapterId);
+      await load();
+    } catch (e: any) {
+      alert(e?.message || "Recheck failed");
+    } finally {
+      setActLoading(false);
+    }
+  };
+
+  return (
+    <AdminLayout>
+      <div className="p-6 space-y-6">
+        {/* Breadcrumb */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <span>Admin</span><span>/</span><span>Moderation</span><span>/</span><span className="text-foreground">Workspace</span>
+        </div>
+
+        <h1 className="text-2xl font-bold">Moderation Workspace</h1>
+
+        {err && <Card className="p-4 text-red-600 text-sm">{err}</Card>}
+        {loading && <Card className="p-4 text-sm">Loading…</Card>}
+
+        {!!record && !loading && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left: Summary & Actions */}
+            <div className="lg:col-span-1">
+              <ChapterSummary record={record} onDecision={onDecision} onRecheck={onRecheck} loading={actLoading} />
+            </div>
+
+            {/* Right: Content & Findings */}
+            <div className="lg:col-span-2 space-y-6">
+              <ContentViewer
+                title={record.chapterTitle ?? "Untitled"}
+                author={record.authorName ?? "-"}
+                html={record.contentHtml ?? "<p><i>(Không có nội dung hiển thị)</i></p>"}
+                updatedAt={record.updatedAt}
+              />
+              <FindingsPanel record={record} />
+            </div>
+          </div>
+        )}
+      </div>
+    </AdminLayout>
+  );
+}
+"use client";
+
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { RiskMeter } from "../risk-meter";
+import { StatusBadge } from "../status-badge";
+import type { ModerationRecord, Decision } from "@/lib/typesLogs";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
+
+export function ChapterSummary({
+  record,
+  onDecision,
+  onRecheck,
+  loading,
+}: {
+  record: ModerationRecord;
+  onDecision: (action: Decision, note?: string) => Promise<void> | void;
+  onRecheck: () => Promise<void> | void;
+  loading?: boolean;
+}) {
+  const [isRunningAI, setIsRunningAI] = useState(false);
+  const [openDialog, setOpenDialog] = useState<Decision | null>(null);
+  const [note, setNote] = useState("");
+
+  const handleDecision = async (action: Decision) => {
+    await onDecision(action, note);
+    setOpenDialog(null);
+    setNote("");
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card className="p-6">
+        <h3 className="font-semibold mb-4">Chapter Information</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <p className="text-sm text-muted-foreground">Title</p>
+            <p className="font-medium">{record.chapterTitle ?? "Untitled"}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Author</p>
+            <p className="font-medium">{record.authorName ?? "-"}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Updated</p>
+            <p className="font-medium">{new Date(record.updatedAt).toLocaleString()}</p>
+          </div>
+          <div>
+            <p className="text-sm text-muted-foreground">Policy Version</p>
+            <p className="font-medium">{record.policy_version}</p>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold">AI Analysis Result</h3>
+            <StatusBadge status={record.ai_status ?? "AI_PENDING"} />
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">Risk Score</p>
+            <RiskMeter score={record.risk_score} />
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">Detection Model</p>
+            <p className="font-medium">{record.ai_model || "-"}</p>
+          </div>
+
+          <div>
+            <p className="text-sm text-muted-foreground mb-2">Detected Issues</p>
+            <div className="flex flex-wrap gap-2">
+              {record.labels.length > 0
+                ? record.labels.map((label) => <Badge key={label} variant="secondary">{label}</Badge>)
+                : <span className="text-sm text-muted-foreground">No issues detected</span>}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-6 bg-blue-50 border-blue-200">
+        <h3 className="font-semibold mb-4">Moderator Action</h3>
+        <div className="space-y-3">
+          <Button className="w-full justify-start" disabled={loading} onClick={() => setOpenDialog("approve")}>
+            Approve & Publish
+          </Button>
+          <Button variant="destructive" className="w-full justify-start" disabled={loading} onClick={() => setOpenDialog("reject")}>
+            Reject
+          </Button>
+          <Button variant="outline" className="w-full justify-start bg-transparent" disabled={loading} onClick={() => setOpenDialog("request_changes")}>
+            Request Changes
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full justify-start bg-transparent"
+            disabled={isRunningAI || loading}
+            onClick={async () => {
+              setIsRunningAI(true);
+              try { await onRecheck(); } finally { setIsRunningAI(false); }
+            }}
+          >
+            {isRunningAI && <Loader2 className="w-4 h-4 mr-2 animate-spin" />} Recheck with AI
+          </Button>
+        </div>
+      </Card>
+
+      <AlertDialog open={!!openDialog} onOpenChange={(open) => !open && setOpenDialog(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {openDialog === "approve" && "Approve Chapter"}
+              {openDialog === "reject" && "Reject Chapter"}
+              {openDialog === "request_changes" && "Request Changes"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {openDialog === "approve" && "This will publish the chapter to users."}
+              {openDialog === "reject" && "This will reject the chapter and notify the author."}
+              {openDialog === "request_changes" && "Request the author to make changes before publishing."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div>
+            <label className="text-sm font-medium">Note (Optional)</label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Add a note for the author or other moderators..."
+              className="w-full mt-2 p-2 border border-border rounded-lg text-sm"
+              rows={4}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => openDialog && handleDecision(openDialog)}>Confirm</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { ModerationRecord } from "@/lib/typesLogs";
+import { AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+
+export function FindingsPanel({ record }: { record: ModerationRecord }) {
+  const categoryMap: Record<string, string> = {
+    violence: "Violence & Gore",
+    sexual: "Sexual Content",
+    language: "Offensive Language",
+    harassment: "Harassment & Bullying",
+    misinformation: "Misinformation",
+    spam: "Spam",
+    general: "General",
+  };
+
+  const findings = record.ai_findings || [];
+
+  return (
+    <Card className="p-6 h-full">
+      <h3 className="font-semibold mb-4">Policy Findings</h3>
+
+      {findings.length === 0 ? (
+        <div className="flex items-center justify-center h-48 text-center">
+          <div>
+            <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-3" />
+            <p className="text-sm text-muted-foreground">No violations detected</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {findings.map((f, idx) => {
+            const icon =
+              f.verdict === "pass" ? <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" /> :
+              f.verdict === "warn" ? <AlertTriangle className="w-5 h-5 text-yellow-500 mt-0.5" /> :
+              <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />;
+
+            const badgeClass =
+              f.verdict === "pass"
+                ? "bg-green-50 text-green-700 border-green-200"
+                : f.verdict === "warn"
+                ? "bg-yellow-50 text-yellow-700 border-yellow-200"
+                : "bg-red-50 text-red-700 border-red-200";
+
+            return (
+              <div key={idx} className="border border-border rounded-lg p-4">
+                <div className="flex items-start gap-3 mb-2">
+                  {icon}
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{categoryMap[f.sectionId] || f.sectionId}</p>
+                    <Badge variant="outline" className={badgeClass}>{f.verdict.toUpperCase()}</Badge>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-2">{f.rationale}</p>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </Card>
+  );
+}
+import { Card } from "@/components/ui/card";
+
+export function ContentViewer({
+  title,
+  author,
+  html,
+  updatedAt,
+}: { title: string; author: string; html: string; updatedAt?: string }) {
+  return (
+    <Card className="p-6 h-full">
+      <div className="mb-4">
+        <h3 className="font-semibold text-lg">{title}</h3>
+        <p className="text-sm text-muted-foreground">Author: {author}{updatedAt ? ` · ${new Date(updatedAt).toLocaleString()}` : ""}</p>
+      </div>
+
+      <div
+        className="prose prose-sm max-w-none bg-gray-50 p-4 rounded-lg text-sm leading-relaxed overflow-y-auto max-h-[32rem]"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </Card>
+  );
+}

@@ -7,7 +7,7 @@ control AccessTokenGuard
 control RolesGuard
 control UsersController
 control UsersService
-entity UsersModel
+entity ":UsersModel" as UsersModel
 database MongoDB
 
 Admin -> UI: 1. Open "Edit User" dialog + select new role
@@ -20,74 +20,87 @@ activate Router
 Router -> AccessTokenGuard: 3. canActivate(request)
 activate AccessTokenGuard
 
-opt Token invalid
-  AccessTokenGuard --> Router: 3.1. Deny
-  Router --> UI: 3.2. 401 Unauthorized
-  UI --> Admin: 3.3. Show error message
-end
-
-AccessTokenGuard --> Router: 4. Allow
+AccessTokenGuard -> AccessTokenGuard: 4. Validate token
+activate AccessTokenGuard
+space
 deactivate AccessTokenGuard
 
-Router -> RolesGuard: 5. checkRole(ADMIN)
-activate RolesGuard
-
-opt Role invalid
-  RolesGuard --> Router: 5.1. Deny
-  Router --> UI: 5.2. 403 Forbidden
-  UI --> Admin: 5.3. Show error message
+opt Token invalid
+  AccessTokenGuard --> Router: 4.1 Deny
+  Router --> UI: 4.2 401 Unauthorized
+  UI --> Admin: 4.3 Show error message
 end
 
-RolesGuard --> Router: 6. Allow
+AccessTokenGuard --> Router: 5. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 6. checkRole(ADMIN)
+activate RolesGuard
+
+RolesGuard -> RolesGuard: 7. Check admin role
+activate RolesGuard
+space
 deactivate RolesGuard
 
-Router -> UsersController: 7. adminSetRole(dto, req.user)
+opt Role invalid
+  RolesGuard --> Router: 7.1 Deny
+  Router --> UI: 7.2 403 Forbidden
+  UI --> Admin: 7.3 Show error message
+end
+
+RolesGuard --> Router: 8. Allow
+deactivate RolesGuard
+
+Router -> UsersController: 9. adminSetRole(dto, req.user)
 activate UsersController
 
-UsersController -> UsersService: 8. adminSetRole(adminId, userId, role)
+UsersController -> UsersService: 10. adminSetRole(adminId, userId, role)
 activate UsersService
 
-UsersService -> UsersService: 9. Validate userId + role enum
+UsersService -> UsersService: 11. Validate userId + role enum
 activate UsersService
 space
 deactivate UsersService
 
-UsersService -> UsersModel: 10. findById(userId)
+UsersService -> UsersModel: 12. findById(userId)
 activate UsersModel
-UsersModel -> MongoDB: 11. query user by _id
+UsersModel -> MongoDB: 13. query user by _id
 activate MongoDB
-MongoDB --> UsersModel: 12. user | null
+MongoDB --> UsersModel: 14. user | null
 deactivate MongoDB
-UsersModel --> UsersService: 13. user entity
+UsersModel --> UsersService: 15. user entity
 deactivate UsersModel
 
-opt Target user not found
-  UsersService --> UsersController: 13.1. Throw NotFoundException
-  UsersController --> Router: 13.2. 404 Not Found
-  Router --> UI: 13.3. Error response
-  UI --> Admin: 13.4. Show error message
-end
-
-UsersService -> UsersModel: 14. set role + save()
-activate UsersModel
-UsersModel -> MongoDB: 15. update user.role
-activate MongoDB
-MongoDB --> UsersModel: 16. Saved document
-deactivate MongoDB
-UsersModel --> UsersService: 17. Updated user
-deactivate UsersModel
-
-UsersService --> UsersController: 18. { success:true, role }
+UsersService -> UsersService: 16. Check target user
+activate UsersService
+space
 deactivate UsersService
 
-UsersController --> Router: 19. 200 OK response
+opt Target user not found
+  UsersService --> UsersController: 16.1 NotFoundException
+  UsersController --> Router: 16.2 404 Not Found
+  Router --> UI: 16.3 Error response
+  UI --> Admin: 16.4 Show error message
+end
+
+UsersService -> UsersModel: 17. set role + save()
+activate UsersModel
+UsersModel -> MongoDB: 18. update user.role
+activate MongoDB
+MongoDB --> UsersModel: 19. Saved document
+deactivate MongoDB
+UsersModel --> UsersService: 20. Updated user
+deactivate UsersModel
+
+UsersService --> UsersController: 21. { success:true, role }
+deactivate UsersService
+
+UsersController --> Router: 22. 200 OK response
 deactivate UsersController
 
-Router --> UI: 20. Return updated role
+Router --> UI: 23. Return updated role
 deactivate Router
 
-UI --> Admin: 21. Show success message
+UI --> Admin: 24. Show success message
 deactivate UI
 deactivate Admin
-
-@enduml

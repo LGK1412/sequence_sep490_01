@@ -5,10 +5,10 @@ boundary "Client UI" as UI
 boundary Router
 control MangaController
 control MangaService
-entity MangaModel
-entity ChapterModel
-entity ChapterPurchaseModel
-entity RatingModel
+entity ":MangaModel" as MangaModel
+entity ":ChapterModel" as ChapterModel
+entity ":ChapterPurchaseModel" as ChapterPurchaseModel
+entity ":RatingModel" as RatingModel
 database MongoDB
 
 User -> UI: 1. Open manga detail page
@@ -24,76 +24,89 @@ activate MangaController
 MangaController -> MangaService: 4. findMangaDetail(id,userId)
 activate MangaService
 
-opt Invalid ObjectId
-    MangaService --> MangaController: 4.1 Throw NotFoundException
-    MangaController --> Router: 4.2 HTTP 404
-    Router --> UI: 4.3 Error
-    UI --> User: 4.4 Manga not found
+MangaService -> MangaService: 5. Check ObjectId valid
+activate MangaService
+space
+deactivate MangaService
 
+opt Invalid ObjectId
+    MangaService --> MangaController: 5.1 Throw NotFoundException
+    MangaController --> Router: 5.2 HTTP 404
+    Router --> UI: 5.3 Error
+    UI --> User: 5.4 Manga not found
 end
 
-MangaService -> MangaModel: 5. findById + populate(author)
+MangaService -> MangaModel: 6. findById + populate(author)
 activate MangaModel
-MangaModel -> MongoDB: 6. findById
+MangaModel -> MongoDB: 7. findById
 activate MongoDB
-MongoDB --> MangaModel: 7. manga / null
+MongoDB --> MangaModel: 8. manga / null
 deactivate MongoDB
-MangaModel --> MangaService: 8. result
+MangaModel --> MangaService: 9. result
 deactivate MangaModel
 
+MangaService -> MangaService: 10. Check manga exists
+activate MangaService
+space
+deactivate MangaService
+
 opt Manga not found
-    MangaService --> MangaController: 8.1 Throw NotFoundException
-    MangaController --> Router: 8.2 HTTP 404
-    Router --> UI: 8.3 Error
-    UI --> User: 8.4 Manga not found
+    MangaService --> MangaController: 10.1 Throw NotFoundException
+    MangaController --> Router: 10.2 HTTP 404
+    Router --> UI: 10.3 Error
+    UI --> User: 10.4 Manga not found
 end
 
-MangaService -> ChapterModel: 9. find published chapters
+MangaService -> ChapterModel: 11. find published chapters
 activate ChapterModel
-ChapterModel -> MongoDB: 10. query chapters
+ChapterModel -> MongoDB: 12. query chapters
 activate MongoDB
-MongoDB --> ChapterModel: 11. chapter list
+MongoDB --> ChapterModel: 13. chapter list
 deactivate MongoDB
-ChapterModel --> MangaService: 12. result
+ChapterModel --> MangaService: 14. result
 deactivate ChapterModel
 
+MangaService -> MangaService: 15. Check user logged in
+activate MangaService
+space
+deactivate MangaService
+
 opt User logged in
-    MangaService -> ChapterPurchaseModel: 13. find purchases
+    MangaService -> ChapterPurchaseModel: 15.1. find purchases
     activate ChapterPurchaseModel
-    ChapterPurchaseModel -> MongoDB: 14. query purchases
+    ChapterPurchaseModel -> MongoDB: 15.2. query purchases
     activate MongoDB
-    MongoDB --> ChapterPurchaseModel: 15. purchase list
+    MongoDB --> ChapterPurchaseModel: 15.3. purchase list
     deactivate MongoDB
-    ChapterPurchaseModel --> MangaService: 16. result
+    ChapterPurchaseModel --> MangaService: 15.4. result
     deactivate ChapterPurchaseModel
 end
 
-MangaService -> MangaService: 17. Build chaptersWithPurchase
+MangaService -> MangaService: 16. Build chaptersWithPurchase
 activate MangaService
 space
 deactivate MangaService
 
-MangaService -> RatingModel: 18. aggregate rating summary
-
+MangaService -> RatingModel: 17. aggregate rating summary
 activate RatingModel
-RatingModel -> MongoDB: 19. aggregate
+RatingModel -> MongoDB: 18. aggregate
 activate MongoDB
-MongoDB --> RatingModel: 20. rating stats
+MongoDB --> RatingModel: 21. rating stats
 deactivate MongoDB
-RatingModel --> MangaService: 21. result
+RatingModel --> MangaService: 22. result
 deactivate RatingModel
 
-MangaService -> MangaService: 22. Determine licenseStatus + isLicensed
+MangaService -> MangaService: 23. Determine licenseStatus + isLicensed
 activate MangaService
 space
 deactivate MangaService
 
-MangaService --> MangaController: 23. Manga detail DTO
+MangaService --> MangaController: 24. Manga detail DTO
 deactivate MangaService
-MangaController --> Router: 24. HTTP 200 + data
+MangaController --> Router: 25. HTTP 200 + data
 deactivate MangaController
-Router --> UI: 25. Response data
+Router --> UI: 26. Response data
 deactivate Router
-UI --> User: 26. Display manga detail
+UI --> User: 27. Display manga detail
 deactivate UI
 deactivate User

@@ -5,7 +5,7 @@ boundary "Manga Select / Dropdown" as UI
 boundary Router
 control MangaController
 control MangaService
-entity MangaModel
+entity ":MangaModel" as MangaModel
 database MongoDB
 
 User -> UI: 1. Open manga list (basic)

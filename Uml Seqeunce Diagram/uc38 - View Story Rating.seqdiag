@@ -5,7 +5,7 @@ boundary "Manga Rating Section (UI)" as UI
 boundary Router
 control RatingController
 control RatingService
-entity RatingModel
+entity ":RatingModel" as RatingModel
 database MongoDB
 
 User -> UI: 1. Open manga reviews
@@ -30,8 +30,8 @@ loop Invalid mangaId / Invalid mangaId type
 end
 
 RatingController -> RatingService: 5. listAllByManga(mangaId)
-
 activate RatingService
+
 RatingService -> RatingModel: 6. Find ratings
 activate RatingModel
 
@@ -48,8 +48,10 @@ deactivate RatingService
 
 RatingController --> Router: 11. HTTP response
 deactivate RatingController
+
 Router --> UI: 12. Render ratings list
 deactivate Router
+
 UI --> User: 13. Show reviews
 deactivate UI
 deactivate User

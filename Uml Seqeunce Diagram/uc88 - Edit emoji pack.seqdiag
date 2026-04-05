@@ -1,0 +1,132 @@
+bottomparticipants
+
+actor Admin
+boundary "Emoji Pack UI" as UI
+boundary Router
+control AccessTokenGuard
+control RolesGuard
+control EmojiPackController
+control EmojiPackService
+control UserService
+entity ":UserModel" as UserModel
+entity ":EmojiPackModel" as EmojiPackModel
+database MongoDB
+
+Admin -> UI: 1. Submit edit emoji pack form
+activate Admin
+activate UI
+
+UI -> Router: 2. PATCH /edit/:id (multipart/form-data)
+activate Router
+
+Router -> AccessTokenGuard: 3. Validate token
+activate AccessTokenGuard
+AccessTokenGuard --> Router: 4. payload / error
+deactivate AccessTokenGuard
+
+opt Invalid token
+  Router --> UI: 4.1 401 Unauthorized
+  UI --> Admin: 4.2 Show error
+end
+
+Router -> RolesGuard: 5. Check role ADMIN
+activate RolesGuard
+RolesGuard --> Router: 6. allow / deny
+deactivate RolesGuard
+
+opt Role invalid
+  Router --> UI: 6.1 403 Forbidden
+  UI --> Admin: 6.2 Show error
+end
+
+Router -> EmojiPackController: 7. editEmojiPack(id, body, files, req)
+activate EmojiPackController
+
+EmojiPackController -> EmojiPackService: 8. checkAdmin(payload)
+activate EmojiPackService
+
+EmojiPackService -> UserService: 9. findUserById(user_id)
+activate UserService
+UserService -> UserModel: 10. findById
+activate UserModel
+UserModel -> MongoDB: 11. query user
+activate MongoDB
+MongoDB --> UserModel: 12. user / null
+deactivate MongoDB
+UserModel --> UserService: 13. user
+deactivate UserModel
+UserService --> EmojiPackService: 14. user
+deactivate UserService
+
+opt User not exist / not admin
+  EmojiPackService --> EmojiPackController: 14.1 BadRequestException
+  EmojiPackController --> Router: 14.2 HTTP error
+  Router --> UI: 14.3 Show error
+  UI --> Admin: 14.4 Show error
+end
+deactivate EmojiPackService
+
+EmojiPackController -> EmojiPackController: 15. Check emojis
+activate EmojiPackController
+space 
+deactivate EmojiPackController
+
+opt Deleted emojis exist
+  ref over EmojiPackController: 3.88.b.i. Deleted emojis exist
+end
+
+EmojiPackController -> EmojiPackController: 16. Check emojis
+activate EmojiPackController
+space 
+deactivate EmojiPackController
+
+opt Upload new emojis
+   ref over EmojiPackController: 3.88.b.ii. Upload new emojis
+
+end
+
+EmojiPackController -> EmojiPackService: 17. updateEmojiPack(...)
+activate EmojiPackService
+
+EmojiPackService -> EmojiPackModel: 18. findById
+activate EmojiPackModel
+EmojiPackModel -> MongoDB: 19. query pack
+activate MongoDB
+MongoDB --> EmojiPackModel: 20. pack / null
+deactivate MongoDB
+EmojiPackModel --> EmojiPackService: 21. pack
+deactivate EmojiPackModel
+
+opt Pack not found
+  EmojiPackService --> EmojiPackController: 21.1 BadRequestException
+  EmojiPackController --> Router: 21.2 HTTP error
+  Router --> UI: 21.3 Show error
+  UI --> Admin: 21.4 Show error
+end
+
+EmojiPackService -> EmojiPackService: 22. update name, price, emojis
+activate EmojiPackService
+space
+deactivate EmojiPackService
+
+EmojiPackService -> EmojiPackModel: 23. save()
+activate EmojiPackModel
+EmojiPackModel -> MongoDB: 24. update pack
+activate MongoDB
+MongoDB --> EmojiPackModel: 25. saved
+deactivate MongoDB
+EmojiPackModel --> EmojiPackService: 26. result
+deactivate EmojiPackModel
+
+EmojiPackService --> EmojiPackController: 27. success
+deactivate EmojiPackService
+
+EmojiPackController --> Router: 28. HTTP 200 {success:true}
+deactivate EmojiPackController
+
+Router --> UI: 29. Response
+deactivate Router
+
+UI --> Admin: 30. Show success
+deactivate UI
+deactivate Admin

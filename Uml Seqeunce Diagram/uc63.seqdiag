@@ -1,0 +1,50 @@
+bottomparticipants
+
+actor User
+boundary "Text Editor" as Editor
+boundary Router
+control SpellCheckController
+control SpellCheckService
+entity "Spell (nspell instance)" as Spell
+
+User -> Editor: 1. Submit check spelling
+activate User
+activate Editor
+
+Editor -> Router: 2. POST /api/spellcheck/check
+activate Router
+
+Router -> SpellCheckController: 3. check(dto)
+activate SpellCheckController
+
+SpellCheckController -> SpellCheckService: 4. checkText(dto)
+activate SpellCheckService
+
+SpellCheckService -> SpellCheckService: 5. Check dictionary loaded
+activate SpellCheckService
+space
+deactivate SpellCheckService
+
+alt Dictionary not loaded
+    SpellCheckService --> SpellCheckController: 5.1 throw error
+    SpellCheckController --> Router: 5.2 HTTP 500
+    Router --> Editor: 5.3 Show error
+    Editor --> User: 5.4 Show error
+end
+
+SpellCheckService -> Spell: 6. correct(wordLower) and suggest(wordLower)
+activate Spell
+Spell --> SpellCheckService: 7. suggestions[]
+deactivate Spell
+
+SpellCheckService --> SpellCheckController: 8. Return { original, errors(word, offset, length, suggestions) }
+deactivate SpellCheckService
+
+SpellCheckController --> Router: 9. HTTP 200
+deactivate SpellCheckController
+
+Router --> Editor: 10. Render result
+deactivate Router
+Editor --> User: 11. Render result
+deactivate Editor
+deactivate User

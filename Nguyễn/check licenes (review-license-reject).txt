@@ -1,0 +1,102 @@
+@startuml
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor "Content Moderator" as Moderator
+boundary "Content Management UI" as UI
+boundary Router
+control MangaController
+control MangaService
+entity MangaModel
+database MongoDB
+
+Moderator -> UI: 1. Click "Reject"
+activate Moderator
+activate UI
+
+UI -> UI: 2. Show rejection textarea
+Moderator -> UI: 3. Enter rejection reason + confirm rejection
+
+opt Rejection reason empty
+  UI --> Moderator: 3.1. Show "Please provide rejection reason"
+end
+
+UI -> Router: 4. PATCH /api/manga/admin/license/{mangaId}/review\n{status:"rejected", rejectReason}
+activate Router
+
+Router -> MangaController: 5. reviewLicense(mangaId, dto, req)
+activate MangaController
+
+MangaController -> MangaService: 6. reviewLicense(mangaId, reviewerId, rejected, rejectReason, false)
+activate MangaService
+
+opt Invalid mangaId / reviewerId / review status
+  MangaService --> MangaController: 6.1. Throw BadRequest
+  MangaController --> Router: 6.1.1. HTTP 400
+  Router --> UI: 6.1.2. Reject failed
+  UI --> Moderator: 6.1.3. Show error message
+end
+
+MangaService -> MangaModel: 7. findById(mangaId)
+activate MangaModel
+MangaModel -> MongoDB: 8. Query story
+activate MongoDB
+MongoDB --> MangaModel: 9. Manga document / null
+deactivate MongoDB
+MangaModel --> MangaService: 10. Return manga
+deactivate MangaModel
+
+opt Manga not found
+  MangaService --> MangaController: 10.1. Throw NotFound
+  MangaController --> Router: 10.1.1. HTTP 404
+  Router --> UI: 10.1.2. Reject failed
+  UI --> Moderator: 10.1.3. Show error message
+end
+
+opt License is not pending
+  MangaService --> MangaController: 10.2. Throw BadRequest("License is not in pending state")
+  MangaController --> Router: 10.2.1. HTTP 400
+  Router --> UI: 10.2.2. Reject failed
+  UI --> Moderator: 10.2.3. Show error message
+end
+
+opt Reject reason missing
+  MangaService --> MangaController: 10.3. Throw BadRequest("Reject reason is required")
+  MangaController --> Router: 10.3.1. HTTP 400
+  Router --> UI: 10.3.2. Reject failed
+  UI --> Moderator: 10.3.3. Show error message
+end
+
+MangaService -> MangaModel: 11. save(licenseStatus=rejected,\nlicenseReviewedAt, licenseReviewedBy,\nlicenseRejectReason, isPublish=false)
+activate MangaModel
+MangaModel -> MongoDB: 12. Update document
+activate MongoDB
+MongoDB --> MangaModel: 13. Saved
+deactivate MongoDB
+MangaModel --> MangaService: 14. Updated manga
+deactivate MangaModel
+
+MangaService --> MangaController: 15. Return success payload
+deactivate MangaService
+
+MangaController --> Router: 16. HTTP 200 response
+deactivate MangaController
+
+Router --> UI: 17. Reject success
+deactivate Router
+
+UI --> Moderator: 18. Show rejected result
+deactivate UI
+deactivate Moderator
+
+@enduml

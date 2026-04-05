@@ -7,7 +7,7 @@ control PoliciesController
 control AccessTokenGuard
 control RolesGuard
 control PoliciesService
-entity PoliciesModel
+entity ":PoliciesModel" as PoliciesModel
 database MongoDB
 
 Admin -> UI: 1. Open "/admin/policies/{id}"
@@ -60,30 +60,38 @@ deactivate MongoDB
 PoliciesModel --> PoliciesService: 13. updated | null
 deactivate PoliciesModel
 
-opt Not found
-  PoliciesService --> PoliciesController: 13.1. Throw NotFoundException
-  PoliciesController --> Router: 13.2. HTTP 404
-  Router --> UI: 13.3. Update failed
-  UI --> Admin: 13.4. Show error message
-end
-
-PoliciesService --> PoliciesController: 14. updated policy
+PoliciesService -> PoliciesService: 14. Check policy
+activate PoliciesService
+space
 deactivate PoliciesService
 
-PoliciesController --> Router: 15. HTTP 200 response
+opt Not found
+  PoliciesService --> PoliciesController: 14.1. Throw NotFoundException
+  PoliciesController --> Router: 14.2. HTTP 404
+  Router --> UI: 14.3. Update failed
+  UI --> Admin: 14.4. Show error message
+end
+
+PoliciesService -> PoliciesService: 15. Check update
+activate PoliciesService
+space
+deactivate PoliciesService
+
+PoliciesService --> PoliciesController: 16. updated policy
+deactivate PoliciesService
+
+PoliciesController --> Router: 17. HTTP 200 response
 deactivate PoliciesController
 
-Router --> UI: 16. Return updated policy
+Router --> UI: 18. Return updated policy
 deactivate Router
 
-UI -> UI: 17. router.push("/admin/policies")
+UI -> UI: 19. router.push("/admin/policies")
 activate UI
 space
 deactivate UI
 
-UI --> Admin: 18. Update policy success
+UI --> Admin: 20. Update policy success
 
 deactivate UI
 deactivate Admin
-
-@enduml

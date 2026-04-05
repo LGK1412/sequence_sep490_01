@@ -8,7 +8,7 @@ control AccessTokenGuard
 control RolesGuard
 control AdminNotificationService
 control NotificationService
-entity NotificationModel
+entity ":NotificationModel" as NotificationModel
 database MongoDB
 
 Admin -> UI: 1. Open Dashboard (Notification Stats)

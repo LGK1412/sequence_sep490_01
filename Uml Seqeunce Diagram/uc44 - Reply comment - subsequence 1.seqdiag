@@ -9,7 +9,7 @@ control ReplyController
 control ReplyService
 control ChapterService
 control MangaService
-entity ReplyModel
+entity ":ReplyModel" as ReplyModel
 database MongoDB
 
 ReplyService -> ReplyModel: 1. save reply
@@ -22,34 +22,44 @@ deactivate MongoDB
 ReplyModel --> ReplyService: 4. savedReply
 deactivate ReplyModel
 
+ReplyService -> ReplyService: 5. Check save result
+activate ReplyService
+space
+deactivate ReplyService
+
 opt Create Reply Failed
-    ReplyService --> ReplyController: 4.1. Error
+    ReplyService --> ReplyController: 5.1. Error
     activate ReplyController
-    ReplyController --> Router: 4.2. 500 Error
+    ReplyController --> Router: 5.2. 500 Error
     activate Router
-    Router --> UI: 4.3 Show error
+    Router --> UI: 5.3 Show error
     activate UI
-    UI --> User: 4.4 Error message
+    UI --> User: 5.4 Error message
     activate User
 end
 
-ReplyService -> ChapterService: 5. getChapterById(chapter_id)
+ReplyService -> ChapterService: 6. getChapterById(chapter_id)
 activate ChapterService
-ChapterService --> ReplyService: 6. chapter
+ChapterService --> ReplyService: 7. chapter
 deactivate ChapterService
 
-ReplyService -> MangaService: 7. get author
+ReplyService -> MangaService: 8. get author
 activate MangaService
-MangaService --> ReplyService: 8. manga
+MangaService --> ReplyService: 9. manga
 deactivate MangaService
 
+ReplyService -> ReplyService: 10. Check manga
+activate ReplyService
+space
+deactivate ReplyService
+
 opt Invalid manga id
-    ReplyService --> ReplyController: 8.1. Error
-    ReplyController --> Router: 8.2. 400 Error
+    ReplyService --> ReplyController: 10.1. Error
+    ReplyController --> Router: 10.2. 400 Error
     deactivate ReplyController
-    Router --> UI: 8.3 Show error
+    Router --> UI: 10.3 Show error
     deactivate Router
-    UI --> User: 8.4 Error message
+    UI --> User: 10.4 Error message
     deactivate User
     deactivate UI
 end

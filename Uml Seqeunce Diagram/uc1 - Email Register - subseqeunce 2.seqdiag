@@ -5,7 +5,7 @@ title Subsequence - Hash password and create user
 control AuthService
 boundary HashUtils
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 AuthService -> HashUtils: 1. Hash password

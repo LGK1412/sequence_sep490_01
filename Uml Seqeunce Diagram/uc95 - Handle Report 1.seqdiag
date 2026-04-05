@@ -7,7 +7,7 @@ control ReportsController
 control AccessTokenGuard
 control RolesGuard
 control ReportsService
-entity ReportsModel
+entity ":ReportsModel" as ReportsModel
 database MongoDB
 
 Staff -> UI: 1. Choose status + resolution note
@@ -61,44 +61,47 @@ deactivate MongoDB
 ReportsModel --> ReportsService: 13. beforeDoc
 deactivate ReportsModel
 
+ReportsService -> ReportsService: 14. Check report
+activate ReportsService
+space
+deactivate ReportsService
+
 opt Report not found
-  ReportsService --> ReportsController: 13.1 Throw NotFoundException
-  ReportsController --> Router: 13.2 404 Not Found
-  Router --> UI: 13.3 Error response
-  UI --> Staff: 13.4 Show error + setLoading(false)
+  ReportsService --> ReportsController: 14.1 Throw NotFoundException
+  ReportsController --> Router: 14.2 404 Not Found
+  Router --> UI: 14.3 Error response
+  UI --> Staff: 14.4 Show error + setLoading(false)
 end
 
-ReportsService -> ReportsService: 14. Ensure Can Access Report
+ReportsService -> ReportsService: 15. Ensure Can Access Report
 activate ReportsService
 space
 deactivate ReportsService
 
-ReportsService -> ReportsModel: 15. findByIdAndUpdate(id, payload, {new:true})
+ReportsService -> ReportsModel: 16. findByIdAndUpdate(id, payload, {new:true})
 activate ReportsModel
-ReportsModel -> MongoDB: 16. update + return updated
+ReportsModel -> MongoDB: 17. update + return updated
 activate MongoDB
-MongoDB --> ReportsModel: 17. updatedReport
+MongoDB --> ReportsModel: 18. updatedReport
 deactivate MongoDB
-ReportsModel --> ReportsService: 18. updatedReport
+ReportsModel --> ReportsService: 19. updatedReport
 deactivate ReportsModel
 
-ReportsService -> ReportsService: 19. createLog(action=report_update)
+ReportsService -> ReportsService: 20. createLog(action=report_update)
 activate ReportsService
 space
 deactivate ReportsService
 
-ReportsService --> ReportsController: 20. updatedReport
+ReportsService --> ReportsController: 21. updatedReport
 deactivate ReportsService
 
-ReportsController --> Router: 21. 200 OK + updatedReport
+ReportsController --> Router: 22. 200 OK + updatedReport
 deactivate ReportsController
 
-Router --> UI: 22. updatedReport
+Router --> UI: 23. updatedReport
 deactivate Router
 
-UI --> Staff: 23. Show success
+UI --> Staff: 24. Show success
 
 deactivate UI
 deactivate Staff
-
-@enduml

@@ -1,0 +1,44 @@
+@startuml
+title Subsequence - Load detail metrics
+
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+control MangaService as SV
+entity ChapterModel as CM
+entity RatingModel as RM
+database MongoDB as DB
+
+activate SV
+
+SV -> CM: 1. countDocuments()
+activate CM
+CM -> DB: 2. Count chapters
+activate DB
+DB --> CM: 3. chaptersCount
+deactivate DB
+CM --> SV: 4. Return count
+deactivate CM
+
+SV -> RM: 5. aggregate()
+activate RM
+RM -> DB: 6. Query ratings
+activate DB
+DB --> RM: 7. Rating summary
+deactivate DB
+RM --> SV: 8. Return summary
+deactivate RM
+
+SV -> SV: 9. Resolve status + normalize data
+deactivate SV
+@enduml

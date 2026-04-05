@@ -5,7 +5,7 @@ boundary "Check-in Modal" as UI
 boundary Router
 control "CheckinController" as Controller
 entity "CheckinService" as Service
-entity "CheckinModel" as CheckinModel
+entity ":CheckinModel" as CheckinModel
 database MongoDB
 
 A -> UI : 1. View in Check-in Modal

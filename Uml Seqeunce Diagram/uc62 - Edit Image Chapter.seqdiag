@@ -1,0 +1,155 @@
+bottomparticipants
+
+actor Author
+boundary "Update Image Chapter UI" as UI
+boundary Router
+control ImageChapterController
+control ImageChapterService
+entity ":ChapterModel" as ChapterModel
+entity ":ImageChapterModel" as ImageChapterModel
+entity FileSystem
+entity Sharp
+database MongoDB
+
+Author -> UI: 1. Submit update image chapter form
+activate Author
+activate UI
+
+UI -> Router: 2. PATCH /chapter-image/{id}
+activate Router
+
+Router -> ImageChapterController: 3. updateChapter(id, body, files)
+activate ImageChapterController
+
+ImageChapterController -> ImageChapterController: 4. Check token / role / chapterId
+activate ImageChapterController
+space
+deactivate ImageChapterController
+
+alt Invalid chapterId
+    ImageChapterController --> Router: 4.1.1 BadRequestException
+    Router --> UI: 4.1.2 Show error
+    UI --> Author: 4.1.3 Error message
+else Token invalid / Role invalid
+    ImageChapterController --> Router: 4.2.1 Unauthorized / Forbidden
+    Router --> UI: 4.2.2 Show error
+    UI --> Author: 4.2.3 Error message
+end
+
+ImageChapterController -> ImageChapterService: 5. updateChapterWithImages(id, dto, files)
+activate ImageChapterService
+
+ImageChapterService -> ImageChapterService: 6. Parse new_images_meta
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+opt Invalid new_images_meta
+    ImageChapterService --> ImageChapterController: 6.1 BadRequestException
+    ImageChapterController --> Router: 6.2 Error response
+    Router --> UI: 6.3 Show error
+    UI --> Author: 6.4 Error message
+end
+
+ImageChapterService -> ChapterModel: 7. findByIdAndUpdate(chapter)
+activate ChapterModel
+ChapterModel -> MongoDB: 8. update chapter
+activate MongoDB
+MongoDB --> ChapterModel: 9. updated chapter / null
+deactivate MongoDB
+ChapterModel --> ImageChapterService: 10. chapter
+deactivate ChapterModel
+
+ImageChapterService -> ImageChapterService: 11. Check chapter existence
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+opt Chapter not found
+    ImageChapterService --> ImageChapterController: 11.1 NotFoundException
+    ImageChapterController --> Router: 11.2 Error response
+    Router --> UI: 11.3 Show error
+    UI --> Author: 11.4 Error message
+end
+
+ImageChapterService -> ImageChapterModel: 12. findOne(chapter_id)
+activate ImageChapterModel
+ImageChapterModel -> MongoDB: 13. query imageChapter
+activate MongoDB
+MongoDB --> ImageChapterModel: 14. imageChapter / null
+deactivate MongoDB
+ImageChapterModel --> ImageChapterService: 15. imageChapter
+deactivate ImageChapterModel
+
+ImageChapterService -> ImageChapterService: 16. Check ImageChapter existence
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+opt ImageChapter not exist
+    ImageChapterService -> ImageChapterModel: 16.1. new ImageChapter()
+    activate ImageChapterModel
+    ImageChapterModel --> ImageChapterService: 16.2. Return new imageChapter
+    deactivate ImageChapterModel
+end
+
+ImageChapterService -> ImageChapterService: 17. Check process new uploaded images
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+opt Process new uploaded images
+    ImageChapterService -> FileSystem: 17.1. mkdir chapter directory
+    activate FileSystem
+    FileSystem --> ImageChapterService: 17.2. directory ready
+    deactivate FileSystem
+
+    loop For each uploaded file
+        ImageChapterService -> Sharp: 17.2.1. convert buffer → webp
+        activate Sharp
+        Sharp --> ImageChapterService: 17.2.2. saved image file
+        deactivate Sharp
+    end
+end
+
+ImageChapterService -> ImageChapterService: 18. Merge existing + new images
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+ImageChapterService -> ImageChapterService: 19. Sort by order
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+ImageChapterService -> ImageChapterService: 20. Detect removed images
+activate ImageChapterService
+space
+deactivate ImageChapterService
+
+opt Delete removed images
+    ImageChapterService -> FileSystem: 20.1. unlink removed image files
+    activate FileSystem
+    FileSystem --> ImageChapterService: 20.2. removed image files
+    deactivate FileSystem
+end
+
+ImageChapterService -> ImageChapterModel: 21. save(images, is_completed)
+activate ImageChapterModel
+ImageChapterModel -> MongoDB: 22. update imageChapter
+activate MongoDB
+MongoDB --> ImageChapterModel: 23. saved
+deactivate MongoDB
+ImageChapterModel --> ImageChapterService: 24. imageChapter
+deactivate ImageChapterModel
+
+ImageChapterService --> ImageChapterController: 25. {chapter, imageChapter}
+deactivate ImageChapterService
+
+ImageChapterController --> Router: 26. HTTP response
+deactivate ImageChapterController
+Router --> UI: 27. Show updated image chapter
+deactivate Router
+UI --> Author: 28. Update success
+deactivate UI
+deactivate Author

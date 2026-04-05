@@ -6,7 +6,7 @@ boundary Router
 control AchievementController
 control AchievementService
 entity AchievementModel
-entity AchievementProgressModel
+entity ":AchievementProgressModel" as AchievementProgressModel
 entity UserModel
 database MongoDB
 
@@ -23,71 +23,86 @@ activate AchievementController
 AchievementController -> AchievementService: 4. call claim reward
 activate AchievementService
 
-loop Invalid userId / achievementId
-  AchievementService --> AchievementController: 4.1. BadRequestException
-  AchievementController --> Router: 4.2. HTTP error
-  Router --> UI: 4.3. Show error
-  UI --> User: 4.4. Show error
-end
-
-AchievementService -> AchievementModel: 5. findById(achievementId)
-activate AchievementModel
-AchievementModel -> MongoDB: 6. query achievement
-activate MongoDB
-MongoDB --> AchievementModel: 7. achievement data
-deactivate MongoDB
-AchievementModel --> AchievementService: 8. return achievement
-deactivate AchievementModel
-
-loop Achievement not found / inactive
-  AchievementService --> AchievementController: 8.1. NotFound / BadRequest
-  AchievementController --> Router: 8.2. HTTP error
-  Router --> UI: 8.3. Show error
-  UI --> User: 8.4. Show error
-end
-
-AchievementService -> AchievementProgressModel: 9. findOne(userId, achievementId)
-activate AchievementProgressModel
-AchievementProgressModel -> MongoDB: 10. query progress
-activate MongoDB
-MongoDB --> AchievementProgressModel: 11. progress data
-deactivate MongoDB
-AchievementProgressModel --> AchievementService: 12. return progress
-deactivate AchievementProgressModel
-
-loop Progress not found / not completed / reward claimed
-  AchievementService --> AchievementController: 12.1. BadRequest / NotFound
-  AchievementController --> Router: 12.2. HTTP error
-  Router --> UI: 12.3. Show error
-  UI --> User: 12.4. Show error
-end
-
-AchievementService -> UserModel: 13. findByIdAndUpdate(+point, +author_point)
-activate UserModel
-UserModel -> MongoDB: 14. update user points
-activate MongoDB
-MongoDB --> UserModel: 15. update success
-deactivate MongoDB
-UserModel --> AchievementService: 16. return
-deactivate UserModel
-
-AchievementService -> AchievementProgressModel: 17. save rewardClaimed = true
-activate AchievementProgressModel
-AchievementProgressModel -> MongoDB: 18. update progress
-activate MongoDB
-MongoDB --> AchievementProgressModel: 19. saved
-deactivate MongoDB
-AchievementProgressModel --> AchievementService: 20. return
-deactivate AchievementProgressModel
-
-AchievementService --> AchievementController: 21. success result
+AchievementService -> AchievementService: 5. Check userId / achievementId
+activate AchievementService
+space
 deactivate AchievementService
 
-AchievementController --> Router: 21. HTTP success response
+loop Invalid userId / achievementId
+  AchievementService --> AchievementController: 5.1. BadRequestException
+  AchievementController --> Router: 5.2. HTTP error
+  Router --> UI: 5.3. Show error
+  UI --> User: 5.4. Show error
+end
+
+AchievementService -> AchievementModel: 6. findById(achievementId)
+activate AchievementModel
+AchievementModel -> MongoDB: 7. query achievement
+activate MongoDB
+MongoDB --> AchievementModel: 8. achievement data
+deactivate MongoDB
+AchievementModel --> AchievementService: 9. return achievement
+deactivate AchievementModel
+
+AchievementService -> AchievementService: 10. Check achievement
+activate AchievementService
+space
+deactivate AchievementService
+
+loop Achievement not found / inactive
+  AchievementService --> AchievementController: 10.1. NotFound / BadRequest
+  AchievementController --> Router: 10.2. HTTP error
+  Router --> UI: 10.3. Show error
+  UI --> User: 10.4. Show error
+end
+
+AchievementService -> AchievementProgressModel: 11. findOne(userId, achievementId)
+activate AchievementProgressModel
+AchievementProgressModel -> MongoDB: 12. query progress
+activate MongoDB
+MongoDB --> AchievementProgressModel: 13. progress data
+deactivate MongoDB
+AchievementProgressModel --> AchievementService: 14. return progress
+deactivate AchievementProgressModel
+
+AchievementService -> AchievementService: 15. Check progress
+activate AchievementService
+space
+deactivate AchievementService
+
+loop Progress not found / not completed / reward claimed
+  AchievementService --> AchievementController: 15.1. BadRequest / NotFound
+  AchievementController --> Router: 15.2. HTTP error
+  Router --> UI: 15.3. Show error
+  UI --> User: 15.4. Show error
+end
+
+AchievementService -> UserModel: 16. findByIdAndUpdate(+point, +author_point)
+activate UserModel
+UserModel -> MongoDB: 17. update user points
+activate MongoDB
+MongoDB --> UserModel: 18. update success
+deactivate MongoDB
+UserModel --> AchievementService: 19. return
+deactivate UserModel
+
+AchievementService -> AchievementProgressModel: 20. save rewardClaimed = true
+activate AchievementProgressModel
+AchievementProgressModel -> MongoDB: 21. update progress
+activate MongoDB
+MongoDB --> AchievementProgressModel: 22. saved
+deactivate MongoDB
+AchievementProgressModel --> AchievementService: 23. return
+deactivate AchievementProgressModel
+
+AchievementService --> AchievementController: 24. success result
+deactivate AchievementService
+
+AchievementController --> Router: 25. HTTP success response
 deactivate AchievementController
 
-Router --> UI: 22. Response data
+Router --> UI: 26. Response data
 deactivate Router
-UI --> User: 23. Show success & reward
+UI --> User: 27. Show success & reward
 deactivate UI
 deactivate User

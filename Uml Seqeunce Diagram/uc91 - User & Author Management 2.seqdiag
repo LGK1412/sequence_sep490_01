@@ -9,7 +9,7 @@ control RolesGuard
 control ValidationPipe
 control UsersService
 control AuditLogService
-entity UsersModel
+entity ":UsersModel" as UserModel
 database MongoDB
 
 Manager -> UI: 1. Click "Mute" + input reason
@@ -82,52 +82,55 @@ deactivate MongoDB
 UsersModel --> UsersService: 19. target
 deactivate UsersModel
 
+UsersService -> UsersService: 20. Check status
+activate UsersService
+space
+deactivate UsersService
+
 opt Target role invalid or status != normal
-  UsersService --> UsersController: 19.1. Throw 400 Bad Request
-  UsersController --> Router: 19.2. HTTP 400
-  Router --> UI: 19.3. Mute failed
-  UI --> Manager: 19.4. Show error message
+  UsersService --> UsersController: 20.1. Throw 400 Bad Request
+  UsersController --> Router: 20.2. HTTP 400
+  Router --> UI: 20.3. Mute failed
+  UI --> Manager: 20.4. Show error message
 end
 
-UsersService -> UsersModel: 20. updateOne(status=mute)
+UsersService -> UsersModel: 21. updateOne(status=mute)
 activate UsersModel
-UsersModel -> MongoDB: 21. update document
+UsersModel -> MongoDB: 22. update document
 activate MongoDB
 
 opt Update failed
-  MongoDB --> UsersModel: 21.1. Error / not modified
-  UsersModel --> UsersService: 21.2. Fail
-  UsersService --> UsersController: 21.3. Throw 400
-  UsersController --> Router: 21.4. HTTP 400
-  Router --> UI: 21.5. Mute failed
-  UI --> Manager: 21.6. Show error message
+  MongoDB --> UsersModel: 22.1. Error / not modified
+  UsersModel --> UsersService: 22.2. Fail
+  UsersService --> UsersController: 22.3. Throw 400
+  UsersController --> Router: 22.4. HTTP 400
+  Router --> UI: 22.5. Mute failed
+  UI --> Manager: 22.6. Show error message
 end
 
-MongoDB --> UsersModel: 22. Updated document
+MongoDB --> UsersModel: 23. Updated document
 deactivate MongoDB
-UsersModel --> UsersService: 23. Success
+UsersModel --> UsersService: 24. Success
 deactivate UsersModel
 
-UsersService -> AuditLogService: 24. createLog(action="mute_user", note=reason)
+UsersService -> AuditLogService: 25. createLog(action="mute_user", note=reason)
 activate AuditLogService
-AuditLogService -> MongoDB: 25. insert audit log
+AuditLogService -> MongoDB: 26. insert audit log
 activate MongoDB
-MongoDB --> AuditLogService: 26. Log saved
+MongoDB --> AuditLogService: 27. Log saved
 deactivate MongoDB
-AuditLogService --> UsersService: 27. Logged
+AuditLogService --> UsersService: 28. Logged
 deactivate AuditLogService
 
-UsersService --> UsersController: 28. {success:true}
+UsersService --> UsersController: 29. {success:true}
 deactivate UsersService
 
-UsersController --> Router: 29. HTTP 200 response
+UsersController --> Router: 30. HTTP 200 response
 deactivate UsersController
 
-Router --> UI: 30. Return success
+Router --> UI: 31. Return success
 deactivate Router
 
-UI --> Manager: 31. Show success + update status
+UI --> Manager: 32. Show success + update status
 deactivate UI
 deactivate Manager
-
-@enduml

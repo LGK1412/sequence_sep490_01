@@ -1,0 +1,55 @@
+bottomparticipants
+
+title Subsequence - Validate ids and find manga
+
+control "MangaService" as SV
+entity ":MangaModel" as MM
+database "MongoDB" as DB
+
+activate SV
+
+SV -> SV: 1. Validate mangaId
+activate SV
+space
+deactivate SV
+alt 2. mangaId invalid
+  SV --> SV: 2.1 BadRequest
+  activate SV
+  space
+  deactivate SV
+else 2. mangaId valid
+  SV -> SV: 3. Validate actorId
+  activate SV
+  space
+  deactivate SV
+  alt 4. actorId invalid
+    SV --> SV: 4.1 BadRequest
+    activate SV
+    space
+    deactivate SV
+  else 4. actorId valid
+    SV -> MM: 5. findById(mangaId)
+    activate MM
+    MM -> DB: 6. Query manga
+    activate DB
+    DB --> MM: 7. Manga / null
+    deactivate DB
+    MM --> SV: 8. Return manga
+    deactivate MM
+
+    alt 9. Manga not found
+      SV --> SV: 9.1 NotFound
+      activate SV
+      space
+      deactivate SV
+    else 9. Manga found
+      SV --> SV: 9.2 Continue
+      activate SV
+      space
+      deactivate SV
+    end
+  end
+end
+
+deactivate SV
+@enduml

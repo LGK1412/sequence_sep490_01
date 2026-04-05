@@ -5,7 +5,7 @@ boundary "Genre Management UI" as UI
 boundary Router
 control GenreController
 control GenreService
-entity GenreModel
+entity ":GenreModel" as GenreModel
 database MongoDB
 
 Admin -> UI: 1. Click "Hide/Unhide" button
@@ -15,63 +15,76 @@ activate UI
 UI -> Router: 2. PATCH /genre/{id}/toggle-status
 activate Router
 
+Router -> Router: 3. Check token / role
+activate Router
+space
+deactivate Router
+
 alt Token invalid
-    Router --> UI: 2.1.1. 401 Unauthorized
-    UI --> Admin: 2.1.2. Show error message
+    Router --> UI: 3.1.1. 401 Unauthorized
+    UI --> Admin: 3.1.2. Show error message
 else Role invalid
-    Router --> UI: 2.2.1. 403 Forbidden
-    UI --> Admin: 2.2.2. Show error message
+    Router --> UI: 3.2.1. 403 Forbidden
+    UI --> Admin: 3.2.2. Show error message
 end
-Router -> GenreController: 3. toggleStatus(id)
+Router -> GenreController: 4. toggleStatus(id)
 activate GenreController
 
-GenreController -> GenreService: 4. toggleStatus(id)
+GenreController -> GenreService: 5. toggleStatus(id)
 activate GenreService
 
-opt Invalid ObjectId
-    GenreService --> GenreController: 4.1. Throw BadRequest
-    GenreController --> Router: 4.2. HTTP 400 response
-    Router --> UI: 4.3. Invalid ID error
-    UI --> Admin: 4.4. Show error message
-end
-GenreService -> GenreModel: 5. findById(id)
-activate GenreModel
-GenreModel -> MongoDB: 6. query document
-activate MongoDB
-MongoDB --> GenreModel: 7. Genre document
-deactivate MongoDB
-GenreModel --> GenreService: 8. Genre
-deactivate GenreModel
-
-opt Not found
-    GenreService --> GenreController: 8.1. Throw NotFound
-    GenreController --> Router: 8.2. HTTP 404 response
-    Router --> UI: 8.3. Not found error
-    UI --> Admin: 8.4. Show error message
-end
-
-
-GenreService -> GenreService: 9. Toggle status
+GenreService -> GenreService: 6. Validate
 activate GenreService
 space
 deactivate GenreService
-GenreService -> GenreModel: 10. save()
+
+opt Invalid ObjectId
+    GenreService --> GenreController: 6.1. Throw BadRequest
+    GenreController --> Router: 6.2. HTTP 400 response
+    Router --> UI: 6.3. Invalid ID error
+    UI --> Admin: 6.4. Show error message
+end
+GenreService -> GenreModel: 7. findById(id)
 activate GenreModel
-GenreModel -> MongoDB: 11. update document
+GenreModel -> MongoDB: 8. query document
 activate MongoDB
-MongoDB --> GenreModel: 12. Updated document
+MongoDB --> GenreModel: 9. Genre document
 deactivate MongoDB
-GenreModel --> GenreService: 13. Updated genre
+GenreModel --> GenreService: 10. Genre
 deactivate GenreModel
 
-GenreService --> GenreController: 14. Updated genre
+GenreService -> GenreService: 11. Check genres
+activate GenreService
+space
 deactivate GenreService
-GenreController --> Router: 15. HTTP 200 response
+
+opt Not found
+    GenreService --> GenreController: 11.1. Throw NotFound
+    GenreController --> Router: 11.2. HTTP 404 response
+    Router --> UI: 11.3. Not found error
+    UI --> Admin: 11.4. Show error message
+end
+
+
+GenreService -> GenreService: 12. Toggle status
+activate GenreService
+space
+deactivate GenreService
+GenreService -> GenreModel: 13. save()
+activate GenreModel
+GenreModel -> MongoDB: 14. update document
+activate MongoDB
+MongoDB --> GenreModel: 15. Updated document
+deactivate MongoDB
+GenreModel --> GenreService: 16. Updated genre
+deactivate GenreModel
+
+GenreService --> GenreController: 17. Updated genre
+deactivate GenreService
+GenreController --> Router: 18. HTTP 200 response
 deactivate GenreController
-Router --> UI: 16. Return updated genre
+Router --> UI: 19. Return updated genre
 deactivate Router
-UI --> Admin: 17. Toggle status success
+UI --> Admin: 20. Toggle status success
 deactivate UI
 deactivate Admin
-
-@enduml

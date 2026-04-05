@@ -4,7 +4,7 @@ title Subsequence - Check duplicate email and username
 
 control AuthService
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 AuthService -> UserService: 1. Get user by email

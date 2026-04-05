@@ -6,8 +6,8 @@ boundary Router
 control UserController
 control UserService
 control NotificationService
-entity UserModel
-entity ChapterProgressModel
+entity ":UserModel" as UserModel
+entity ":ChapterProgressModel" as ChapterProgressModel
 database MongoDB
 
 User -> UI: 1. Click "Request Author"
@@ -20,107 +20,124 @@ activate Router
 Router -> UserController: 3. requestAuthor(req)
 activate UserController
 
+UserController -> UserController: 4. Check token / role
+activate UserController
+space
+deactivate UserController
+
 opt Token / Role Invalid
-    UserController --> Router: 3.1 401 / 403 Error
-    Router --> UI: 3.2 Show error
-    UI --> User: 3.3 Error message
+    UserController --> Router: 4.1 401 / 403 Error
+    Router --> UI: 4.2 Show error
+    UI --> User: 4.3 Error message
 end
 
-UserController -> UserService: 4. requestAuthor(userId)
+UserController -> UserService: 5. requestAuthor(userId)
 activate UserService
 
-UserService -> UserModel: 5. findById(userId)
+UserService -> UserModel: 6. findById(userId)
 activate UserModel
-UserModel -> MongoDB: 6. query user
+UserModel -> MongoDB: 7. query user
 activate MongoDB
-MongoDB --> UserModel: 7. user / null
+MongoDB --> UserModel: 8. user / null
 deactivate MongoDB
-UserModel --> UserService: 8. user
+UserModel --> UserService: 9. user
 deactivate UserModel
 
-alt User not exist
-    UserService --> UserController: 8.1.1. NotFoundException
-    UserController --> Router: 8.1.2. Error response
-    Router --> UI: 8.1.3. Show error
-    UI --> User: 8.1.4. Error message
-else Already author / approved
-    UserService --> UserController: 8.2.1. BadRequestException
-    UserController --> Router: 8.2.2. Error response
-    Router --> UI: 8.2.3. Show error
-    UI --> User: 8.2.4. Error message
-end
-
-UserService -> UserService: 9. evaluateAuthorEligibility(userId)
+UserService -> UserService: 10. Check user existence / status
 activate UserService
 space
 deactivate UserService
 
-UserService -> UserModel: 10. check email verified
+alt User not exist
+    UserService --> UserController: 10.1.1 NotFoundException
+    UserController --> Router: 10.1.2 Error response
+    Router --> UI: 10.1.3 Show error
+    UI --> User: 10.1.4 Error message
+else Already author / approved
+    UserService --> UserController: 10.2.1 BadRequestException
+    UserController --> Router: 10.2.2 Error response
+    Router --> UI: 10.2.3 Show error
+    UI --> User: 10.2.4 Error message
+end
 
+UserService -> UserService: 11. evaluateAuthorEligibility(userId)
+activate UserService
+space
+deactivate UserService
+
+UserService -> UserModel: 12. check email verified
 activate UserModel
-UserModel -> MongoDB: 11. query verified
+UserModel -> MongoDB: 13. query verified
 activate MongoDB
-MongoDB --> UserModel: 12. verified flag
+MongoDB --> UserModel: 14. verified flag
 deactivate MongoDB
-UserModel --> UserService: 13. verified result
+UserModel --> UserService: 15. verified result
 deactivate UserModel
 
-UserService -> UserModel: 14. count followers
+UserService -> UserModel: 16. count followers
 activate UserModel
-UserModel -> MongoDB: 15. countDocuments(following_authors)
+UserModel -> MongoDB: 17. countDocuments(following_authors)
 activate MongoDB
-MongoDB --> UserModel: 16. followersCount
+MongoDB --> UserModel: 18. followersCount
 deactivate MongoDB
-UserModel --> UserService: 17. followersCount
+UserModel --> UserService: 19. followersCount
 deactivate UserModel
 
-UserService -> ChapterProgressModel: 18. count chapters read
+UserService -> ChapterProgressModel: 20. count chapters read
 activate ChapterProgressModel
-ChapterProgressModel -> MongoDB: 19. countDocuments(is_completed=true)
+ChapterProgressModel -> MongoDB: 21. countDocuments(is_completed=true)
 activate MongoDB
-MongoDB --> ChapterProgressModel: 20. chaptersReadCount
+MongoDB --> ChapterProgressModel: 22. chaptersReadCount
 deactivate MongoDB
-ChapterProgressModel --> UserService: 21. chaptersReadCount
+ChapterProgressModel --> UserService: 23. chaptersReadCount
 deactivate ChapterProgressModel
 
+UserService -> UserService: 24. Check eligibility criteria
+activate UserService
+space
+deactivate UserService
+
 alt All criteria met (auto approve)
-    UserService -> UserModel: 21.1.1. update role=author, status=APPROVED
+    UserService -> UserModel: 24.1.1 update role=author, status=APPROVED
     activate UserModel
-    UserModel -> MongoDB: 21.1.2. update user
+    UserModel -> MongoDB: 24.1.2 update user
     activate MongoDB
-    MongoDB --> UserModel: 21.1.3 update success
+    MongoDB --> UserModel: 24.1.3 update success
     deactivate MongoDB
-    UserModel --> UserService: 21.1.4. update complete
+    UserModel --> UserService: 24.1.4 update complete
     deactivate UserModel
 
+    UserService -> UserService: 24.1.5 Check has device_id
+    activate UserService
+    space
+    deactivate UserService
 
     opt Has device_id
-        UserService -> NotificationService: 21.1.4.1. createNotification()
+        UserService -> NotificationService: 24.1.5.1 createNotification()
         activate NotificationService
-        NotificationService --> UserService: 21.1.4.2. notification created
+        NotificationService --> UserService: 24.1.5.2 notification created
         deactivate NotificationService
     end
 
-    UserService --> UserController: 21.1.5. autoApproved=true
+    UserService --> UserController: 24.1.5 autoApproved=true
 else Criteria not met
-    UserService -> UserModel: 21.2.1. update status=PENDING
+    UserService -> UserModel: 24.2.1 update status=PENDING
     activate UserModel
-    UserModel -> MongoDB: 21.2.2. update user
+    UserModel -> MongoDB: 24.2.2 update user
     activate MongoDB
-    MongoDB --> UserModel: 21.2.3 update success
+    MongoDB --> UserModel: 24.2.3 update success
     deactivate MongoDB
-    UserModel --> UserService: 21.2.4 update complete
+    UserModel --> UserService: 24.2.4 update complete
     deactivate UserModel
-    UserService --> UserController: 21.2.5. autoApproved=false
-    deactivate UserService
+
+    UserService --> UserController: 24.2.5 autoApproved=false
 end
 
 deactivate UserService
-UserController --> Router: 22. HTTP response
+UserController --> Router: 25. HTTP response
 deactivate UserController
-Router --> UI: 23. Show result
+Router --> UI: 26. Show result
 deactivate Router
-UI --> User: 24. See author request result
+UI --> User: 27. See author request result
 deactivate UI
 deactivate User
-@enduml

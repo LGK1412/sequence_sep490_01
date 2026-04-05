@@ -1,0 +1,32 @@
+bottomparticipants
+title Subsequence - Save enforcement update
+
+control "MangaService" as SV
+entity ":MangaModel" as MM
+database "MongoDB" as DB
+
+activate SV
+
+alt 1. Suspend or ban
+  SV -> SV: 1.1 Set information for update
+  activate SV
+  space
+  deactivate SV
+else Clear restriction
+  SV -> SV: 1.2 Set information for update
+  activate SV
+  space
+  deactivate SV
+end
+
+SV -> MM: 2. save()
+activate MM
+MM -> DB: 3. Update manga
+activate DB
+DB --> MM: 4. Saved
+deactivate DB
+MM --> SV: 5. Updated manga
+deactivate MM
+
+deactivate SV
+@enduml

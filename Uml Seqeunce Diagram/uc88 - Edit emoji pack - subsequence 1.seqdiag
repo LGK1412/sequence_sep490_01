@@ -1,0 +1,40 @@
+bottomparticipants
+
+title Deleted emojis exist
+
+control EmojiPackController
+control EmojiService
+entity ":EmojiModel" as EmojiModel
+entity ":FileSystem" as FileSystem
+database MongoDB
+
+EmojiPackController -> EmojiService: 1. deleteEmojisByIds(ids)
+activate EmojiPackController
+  activate EmojiService
+
+  EmojiService -> EmojiModel: 2. find({_id: $in})
+  activate EmojiModel
+  EmojiModel -> MongoDB: 3. query emojis
+  activate MongoDB
+  MongoDB --> EmojiModel: 4. emoji list
+  deactivate MongoDB
+  EmojiModel --> EmojiService: 5. emojis
+  deactivate EmojiModel
+
+  EmojiService -> FileSystem: 6. unlink files
+  activate FileSystem
+  FileSystem --> EmojiService: 7. done
+  deactivate FileSystem
+
+  EmojiService -> EmojiModel: 8. deleteMany
+  activate EmojiModel
+  EmojiModel -> MongoDB: 9. delete docs
+  activate MongoDB
+  MongoDB --> EmojiModel: 10. deleted
+  deactivate MongoDB
+  EmojiModel --> EmojiService: 11. result
+  deactivate EmojiModel
+
+  EmojiService --> EmojiPackController: 12. deletedEmoji[]
+  deactivate EmojiService
+    deactivate EmojiPackController

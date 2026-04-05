@@ -5,7 +5,7 @@ boundary "Notification Page" as UI
 boundary Router
 control NotificationController
 control NotificationService
-entity NotificationModel
+entity ":NotificationModel" as NotificationModel
 database MongoDB
 
 User -> UI: 1. Click "Delete notification"
@@ -21,31 +21,35 @@ activate NotificationController
 NotificationController -> NotificationService: 4. deleteNoti(id, payload)
 activate NotificationService
 
-opt Invalid user
-  NotificationService --> NotificationController: 4.1. BadRequestException
-  NotificationController --> Router: 4.2. HTTP error
-  Router --> UI: 4.3. Show error
-  UI --> User: 4.4. Show error
-end
-
-NotificationService -> NotificationModel: 5. findOneAndDelete(_id, receiver_id)
-activate NotificationModel
-NotificationModel -> MongoDB: 6. delete notification
-activate MongoDB
-MongoDB --> NotificationModel: 7. delete result
-deactivate MongoDB
-NotificationModel --> NotificationService: 8. return deleted notification
-deactivate NotificationModel
-
-NotificationService --> NotificationController: 9. success result
+NotificationService -> NotificationService: 5. Check user
+activate NotificationService
+space
 deactivate NotificationService
 
-NotificationController --> Router: 10. HTTP response
+opt Invalid user
+  NotificationService --> NotificationController: 5.1. BadRequestException
+  NotificationController --> Router: 5.2. HTTP error
+  Router --> UI: 5.3. Show error
+  UI --> User: 5.4. Show error
+end
+
+NotificationService -> NotificationModel: 6. findOneAndDelete(_id, receiver_id)
+activate NotificationModel
+NotificationModel -> MongoDB: 7. delete notification
+activate MongoDB
+MongoDB --> NotificationModel: 8. delete result
+deactivate MongoDB
+NotificationModel --> NotificationService: 9. return deleted notification
+deactivate NotificationModel
+
+NotificationService --> NotificationController: 10. success result
+deactivate NotificationService
+
+NotificationController --> Router: 11. HTTP response
 deactivate NotificationController
 
-Router --> UI: 11. Response data
+Router --> UI: 12. Response data
 deactivate Router
-UI --> User: 12. Remove notification from list
+UI --> User: 13. Remove notification from list
 deactivate UI
 deactivate User
-@enduml

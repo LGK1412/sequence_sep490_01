@@ -1,0 +1,92 @@
+bottomparticipants 
+
+actor Author
+boundary "Author Statistics Page" as UI
+boundary Router
+control MangaController
+control MangaService
+entity ":MangaModel" as MangaModel
+entity ":ChapterModel" as ChapterModel
+database MongoDB
+
+Author -> UI: 1. Open Author Statistics page
+activate Author
+activate UI
+
+    UI -> Router: 2. GET /api/manga/author/{AuthorId}/stats
+    activate Router
+
+    Router -> MangaController: 3. getAuthorStats(AuthorId)
+    activate MangaController
+
+    MangaController -> MangaService: 4. getAuthorStatistics(AuthorId)
+    activate MangaService
+
+    MangaService -> MangaModel: 5. Count total stories by author
+    activate MangaModel
+    MangaModel -> MongoDB: 6. Query stories
+    activate MongoDB
+    MongoDB --> MangaModel: 7. Story list
+    deactivate MongoDB
+    MangaModel --> MangaService: 8. totalStories
+    deactivate MangaModel
+
+    MangaService -> MangaModel: 9. Count published stories
+    activate MangaModel
+    MangaModel -> MongoDB: 10. Query status=published
+    activate MongoDB
+    MongoDB --> MangaModel: 11. Result
+    deactivate MongoDB
+    MangaModel --> MangaService: 12. publishedStories
+    deactivate MangaModel
+
+    MangaService -> ChapterModel: 13. Count chapters by author stories
+    activate ChapterModel
+    ChapterModel -> MongoDB: 14. Query chapters
+    activate MongoDB
+    MongoDB --> ChapterModel: 15. Result
+    deactivate MongoDB
+    ChapterModel --> MangaService: 16. totalChapters
+    deactivate ChapterModel
+
+    MangaService -> MangaModel: 17. Sum views of all stories
+    activate MangaModel
+    MangaModel-> MongoDB: 18. Aggregate views
+    activate MongoDB
+    MongoDB --> MangaModel: 19. Result
+    deactivate MongoDB
+    MangaModel--> MangaService: 20. totalViews
+    deactivate MangaModel
+
+    MangaService -> MangaModel: 21. Count stories by status
+    activate MangaModel
+    MangaModel -> MongoDB: 22. Query ongoing/completed/hiatus
+    activate MongoDB
+    MongoDB --> MangaModel: 23. Result
+    deactivate MongoDB
+    MangaModel --> MangaService: 24. statusBreakdown
+    deactivate MangaModel
+
+    MangaService -> MangaService: 25. Calculate avgViewsPerStory
+    activate MangaService
+    space
+    deactivate MangaService
+
+    MangaService --> MangaController: 26. Return statistics DTO
+    deactivate MangaService
+
+    MangaController --> Router: 27. HTTP 200 JSON response
+    deactivate MangaController
+
+    Router --> UI: 28. Statistics data
+    deactivate Router
+
+    UI -> UI: 29. Render statistics cards
+    activate UI
+    space 
+    deactivate UI
+    
+    UI --> Author:30. Display author statistics
+
+deactivate UI
+deactivate Author

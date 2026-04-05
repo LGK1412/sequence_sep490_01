@@ -6,7 +6,7 @@ boundary Router
 control UserController
 control UserService
 control JwtService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 User -> UI: 1. Open favourite list
@@ -18,53 +18,69 @@ activate Router
 
 Router -> UserController: 3. getFavourites()
 activate UserController
+
 UserController -> UserService: 4. getFavourites(token)
 activate UserService
 
-opt No token
-    UserService --> UserController: 4.1. Return 400 Bad Request
-    UserController --> Router: 4.2. Return 400 Bad Request
-    Router --> UI: 4.3. Return 400 Bad Request
-    UI --> User: 4.4. Show error
-end
-
-UserService -> JwtService: 5. Verify token
-activate JwtService
-JwtService --> UserService: 6. Decoded
-deactivate JwtService
-
-opt Invalid token
-    UserService --> UserController: 6.1. Return 400 Bad Request
-    UserController --> Router: 6.2. Return 400 Bad Request
-    Router --> UI: 6.3. Return 400 Bad Request
-    UI --> User: 6.4. Show error
-end
-
-UserService -> UserModel: 7. Find user
-activate UserModel
-UserModel -> MongoDB: 8. Find user
-activate MongoDB
-MongoDB --> UserModel: 9. Reuturn user
-deactivate MongoDB
-UserModel --> UserService: 10. User data
-deactivate UserModel
-
-opt User not found
-    UserService --> UserController: 10.1. Return 400 Bad Request
-    UserController --> Router: 10.2. Return 400 Bad Request
-    Router --> UI: 10.3. Return 400 Bad Request
-    UI --> User: 10.4. Show error
-end
-
-UserService --> UserController: 11. Return favourites list
+UserService -> UserService: 5. Check token
+activate UserService
+space
 deactivate UserService
 
-UserController --> Router: 12. HTTP response
+opt No token
+    UserService --> UserController: 5.1. Return 400 Bad Request
+    UserController --> Router: 5.2. Return 400 Bad Request
+    Router --> UI: 5.3. Return 400 Bad Request
+    UI --> User: 5.4. Show error
+end
+
+UserService -> JwtService: 6. Verify token
+activate JwtService
+JwtService --> UserService: 7. Decoded
+deactivate JwtService
+
+UserService -> UserService: 8. Check decoded
+activate UserService
+space
+deactivate UserService
+
+opt Invalid token
+    UserService --> UserController: 8.1. Return 400 Bad Request
+    UserController --> Router: 8.2. Return 400 Bad Request
+    Router --> UI: 8.3. Return 400 Bad Request
+    UI --> User: 8.4. Show error
+end
+
+UserService -> UserModel: 9. Find user
+activate UserModel
+UserModel -> MongoDB: 10. Find user
+activate MongoDB
+MongoDB --> UserModel: 11. Reuturn user
+deactivate MongoDB
+UserModel --> UserService: 12. User data
+deactivate UserModel
+
+UserService -> UserService: 13. Check user
+activate UserService
+space
+deactivate UserService
+
+opt User not found
+    UserService --> UserController: 13.1. Return 400 Bad Request
+    UserController --> Router: 13.2. Return 400 Bad Request
+    Router --> UI: 13.3. Return 400 Bad Request
+    UI --> User: 13.4. Show error
+end
+
+UserService --> UserController: 14. Return favourites list
+deactivate UserService
+
+UserController --> Router: 15. HTTP response
 deactivate UserController
 
-Router --> UI: 13. Render favourites
+Router --> UI: 16. Render favourites
 deactivate Router
 
-UI --> User: 14. Display favourite mangas
+UI --> User: 17. Display favourite mangas
 deactivate UI
 deactivate User

@@ -7,7 +7,7 @@ control ReportController
 control AccessTokenGuard
 control RolesGuard
 control ReportService
-entity ReportModel
+entity ":ReportModel" as ReportModel
 database MongoDB
 
 Admin -> UI: 1. Open Dashboard (Reports Statistics)

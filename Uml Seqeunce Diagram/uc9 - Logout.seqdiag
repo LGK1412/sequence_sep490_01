@@ -12,28 +12,36 @@ activate UI
 UI -> Router: 2. POST /api/auth/logout (cookie)
 activate Router
 
-loop Invalid / expired token
-  Router --> UI: 2.1. Show error
-  UI --> User: 2.2. Logout failed
-end
-
-Router -> AuthController: 3. logout()
-activate AuthController
-
-AuthController -> Router: 4. res.cookie(access_token=\"\", maxAge=0)
-
-opt Exception while clearing cookie
-  AuthController --> Router: 4.1 400 BadRequest
-  Router --> UI: 4.2 Show error
-  UI --> User: 4.3 Logout failed
-end
-
-AuthController --> Router: 5. { success:true }
-deactivate AuthController
-
-Router --> UI: 6. Logout response
+Router -> Router: 3. Check token
+activate Router
+space
 deactivate Router
 
-UI --> User: 7. Redirect login
+opt Invalid / expired token
+    Router --> UI: 3.1. Show error
+    UI --> User: 3.2. Logout failed
+end
+
+Router -> AuthController: 4. logout()
+activate AuthController
+
+AuthController -> AuthController: 5. Clear cookie
+activate AuthController
+space
+deactivate AuthController
+
+opt Exception while clearing cookie
+    AuthController --> Router: 5.1. 400 BadRequest
+    Router --> UI: 5.2. Show error
+    UI --> User: 5.3. Logout failed
+end
+
+AuthController --> Router: 6. { success: true }
+deactivate AuthController
+
+Router --> UI: 7. Logout response
+deactivate Router
+
+UI --> User: 8. Redirect login
 deactivate UI
 deactivate User

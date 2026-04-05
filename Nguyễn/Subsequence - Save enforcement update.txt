@@ -1,0 +1,52 @@
+@startuml
+title Subsequence - Save enforcement update
+hide footbox
+
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+  responseMessageBelowArrow true
+}
+
+control "MangaService" as SV
+entity "MangaModel" as MM
+database "MongoDB" as DB
+
+activate SV
+
+alt 1. Suspend or ban
+  note right of SV
+  1.1 Set enforcementStatus
+  1.2 Set enforcementReason
+  1.3 Set updatedBy
+  1.4 Set updatedAt
+  1.5 Set isPublish = false
+  end note
+else 1. Clear restriction
+  note right of SV
+  1.6 Set status = normal
+  1.7 Clear reason
+  1.8 Set updatedBy
+  1.9 Set updatedAt
+  end note
+end
+
+SV -> MM: 2. save()
+activate MM
+MM -> DB: 3. Update manga
+activate DB
+DB --> MM: 4. Saved
+deactivate DB
+MM --> SV: 5. Updated manga
+deactivate MM
+
+deactivate SV
+@enduml

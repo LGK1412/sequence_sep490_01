@@ -1,0 +1,140 @@
+bottomparticipants
+
+actor Author
+boundary "Author License UI" as UI
+boundary Router
+control FilesInterceptor
+control MangaController
+control MangaService
+entity ":MangaModel" as MangaModel
+database "File System" as FS
+database MongoDB
+
+Author -> UI: 1. Choose files + enter note + click "Submit License"
+activate Author
+activate UI
+
+UI -> UI: 2. Client validate (files exist, type PDF/image, <= 10MB, max 5)
+activate UI
+space 
+deactivate UI
+opt Client validation failed
+  UI --> Author: 2.1. Show inline error
+end
+
+UI -> Router: 3. POST /api/manga/{id}/license (multipart/form-data)
+activate Router
+
+Router -> FilesInterceptor: 4. Intercept files("files", max=5)
+activate FilesInterceptor
+opt Invalid file type / size
+  FilesInterceptor --> Router: 4.1. Throw BadRequest
+  Router --> UI: 4.2. 400 Bad Request
+  UI --> Author: 4.3. Show upload error
+end
+FilesInterceptor --> Router: 5. Files extracted
+deactivate FilesInterceptor
+
+Router -> MangaController: 6. uploadLicense(mangaId, files, dto, req)
+activate MangaController
+
+opt Missing files
+  MangaController --> Router: 6.1. Throw BadRequest("Missing license files")
+  Router --> UI: 6.2. 400 Bad Request
+  UI --> Author: 6.3. Show error message
+end
+
+MangaController -> MangaService: 7. uploadLicenseForManga(mangaId, userId, files, note)
+activate MangaService
+
+MangaService -> MangaModel: 8. findById(mangaId)
+activate MangaModel
+MangaModel -> MongoDB: 9. Query manga by id
+activate MongoDB
+MongoDB --> MangaModel: 10. Manga document / null
+deactivate MongoDB
+MangaModel --> MangaService: 11. Return manga
+deactivate MangaModel
+
+loop Invalid mangaId / actorId / no files / Manga not found / Author is not owner
+  MangaService --> MangaController: 11.1. Throw BadRequest
+  MangaController --> Router: 11.2. HTTP 400
+  Router --> UI: 11.3. Upload failed
+  UI --> Author: 11.4. Show error message
+end
+
+MangaService -> FS: 12. mkdir public/assets/licenses/{mangaId}
+activate FS
+FS --> MangaService: 13. Directory ready
+
+loop For each uploaded file
+  MangaService -> FS: 13.1.1. writeFile(buffer -> generated filename)
+  FS --> MangaService: 13.1.2. File saved
+end
+
+opt Save file failed
+  MangaService -> FS: 13.2.1. delete newly written files
+  FS --> MangaService: 13.2.2. Cleanup done
+  MangaService --> MangaController: 13.2.3. Throw InternalServerError
+  MangaController --> Router: 13.2.4. HTTP 500
+  Router --> UI: 13.2.5. Upload failed
+  UI --> Author: 13.2.6. Show error message
+end
+
+MangaService -> MangaModel: 14. Update manga license fields + save()
+activate MangaModel
+MangaModel -> MongoDB: 15. Update license
+activate MongoDB
+MongoDB --> MangaModel: 16. Saved manga
+deactivate MongoDB
+MangaModel --> MangaService: 17. Updated manga
+deactivate MangaModel
+
+opt DB save failed
+  MangaService -> FS: 17.1.1. delete newly written files
+  FS --> MangaService: 17.1.2. Cleanup done
+  MangaService --> MangaController: 17.1.3. Throw InternalServerError
+  MangaController --> Router: 17.1.4. HTTP 500
+  Router --> UI: 17.1.5. Upload failed
+  UI --> Author: 17.1.6. Show error message
+end
+
+opt Old license files exist
+  MangaService -> FS: 17.2.1. Delete old license files
+  FS --> MangaService: 17.2.2. Old files removed
+end
+deactivate FS
+
+MangaService --> MangaController: 18. Return success payload
+deactivate MangaService
+
+MangaController --> Router: 19. HTTP 201/200 response
+deactivate MangaController
+
+Router --> UI: 20. Return success result
+deactivate Router
+
+UI -> Router: 21. GET /api/manga/{id}/license-status
+activate Router
+Router -> MangaController: 22. getLicenseStatus(mangaId)
+activate MangaController
+MangaController -> MangaService: 23. getLicenseStatus(mangaId)
+activate MangaService
+MangaService -> MangaModel: 24. findById().select(license fields)
+activate MangaModel
+MangaModel -> MongoDB: 25. Query latest license status
+activate MongoDB
+MongoDB --> MangaModel: 26. Return license status
+deactivate MongoDB
+MangaModel --> MangaService: 27. Status data
+deactivate MangaModel
+MangaService --> MangaController: 28. Return status
+deactivate MangaService
+MangaController --> Router: 29. HTTP 200 response
+deactivate MangaController
+Router --> UI: 30. Updated status = PENDING
+deactivate Router
+
+UI --> Author: 31. Show successfully
+deactivate UI
+deactivate Author

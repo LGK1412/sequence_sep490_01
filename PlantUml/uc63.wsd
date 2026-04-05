@@ -1,0 +1,58 @@
+@startuml
+skinparam {
+    ActorBackgroundColor #FFFFFF
+    BoundaryBackgroundColor #FFFFFF
+    ControlBackgroundColor #FFFFFF
+    EntityBackgroundColor #FFFFFF
+    DatabaseBackgroundColor #FFFFFF
+
+    ActorBorderColor black
+    BoundaryBorderColor black
+    ControlBorderColor black
+    EntityBorderColor black
+    DatabaseBorderColor black
+}
+
+actor User
+boundary "Text Editor" as Editor
+boundary Router
+control SpellCheckController
+control SpellCheckService
+entity "Spell (nspell instance)" as Spell
+
+User -> Editor: 1. Submit check spelling
+activate User
+activate Editor
+
+Editor -> Router: 2. POST /api/spellcheck/check
+activate Router
+
+Router -> SpellCheckController: 3. check(dto)
+activate SpellCheckController
+
+SpellCheckController -> SpellCheckService: 4. checkText(dto)
+activate SpellCheckService
+
+alt Dictionary not loaded
+    SpellCheckService --> SpellCheckController: 4.1 throw error
+    SpellCheckController --> Router: 4.2 HTTP 500
+    Router --> Editor: 4.3 Show error
+else Dictionary ready
+    SpellCheckService -> Spell: 5. correct(wordLower) and suggest(wordLower)
+    activate Spell
+    Spell --> SpellCheckService: 6. suggestions[]
+    deactivate Spell
+
+    SpellCheckService --> SpellCheckController: 7. Return { original, errors(word, offset, length, suggestions) }
+end
+
+deactivate SpellCheckService
+SpellCheckController --> Router: 8. HTTP 200
+deactivate SpellCheckController
+
+Router --> Editor: 9. Render result
+deactivate Router
+
+deactivate Editor
+deactivate User
+@enduml

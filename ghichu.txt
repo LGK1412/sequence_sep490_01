@@ -1,0 +1,12 @@
+Squence: 
++ use case 7, 47, 90 ( có 2 main trở lên)
++ 63, 64, 65, 68, 69, 70, 71, 72, 74, 76, 77, 78, 88, 89, 91, 92, 93, 94, 95, 96, 97, 100, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118  (chưa có sequence)
++ use case 31 có 2 a và b, nhưng sequence chỉ có 1 hình 
+
+Use case description:
++ use case 32, 33, 35, 46, 56, 67, 98, 104, 105, 106, 107, 108, 109, 111, 112, 113, 114, 116, 117, 118 chưa có use case description
+
+
+*Lưu ý 
++ trong backlog với sequence đặt tên use case 82 là Delete Genres, nhưng trong report 3 đặt là Hide Genres.
++ trong backlog với use case description đặt tên use case 86 là Hide Style, nhưng trong sequence đặt là Delete Style.

@@ -5,7 +5,7 @@ boundary "View Replies UI" as UI
 boundary Router
 control ReplyController
 control ReplyService
-entity ReplyModel
+entity ":ReplyModel" as ReplyModel
 database MongoDB
 
 User -> UI: 1. Open comment replies

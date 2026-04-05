@@ -5,7 +5,7 @@ boundary "Home / Discover Page" as UI
 boundary Router
 control MangaController
 control MangaService
-entity MangaModel
+entity ":MangaModel" as MangaModel
 database MongoDB
 
 User -> UI: 1. Click "Random story"
@@ -30,21 +30,26 @@ deactivate MongoDB
 MangaModel --> MangaService: 8. aggregation result
 deactivate MangaModel
 
-opt No story found
-  MangaService --> MangaController: 8.1. null
-  MangaController --> Router: 8.2. NotFoundException
-  Router --> UI: 8.3. Show error
-  UI --> User: 8.4. Show error
-end
-
-MangaService --> MangaController: 9. return random manga (_id, title)
+MangaService -> MangaService: 9. Check result
+activate MangaService
+space
 deactivate MangaService
 
-MangaController --> Router: 10. HTTP response
+opt No story found
+  MangaService --> MangaController: 9.1. null
+  MangaController --> Router: 9.2. NotFoundException
+  Router --> UI: 9.3. Show error
+  UI --> User: 9.4. Show error
+end
+
+MangaService --> MangaController: 10. return random manga (_id, title)
+deactivate MangaService
+
+MangaController --> Router: 11. HTTP response
 deactivate MangaController
 
-Router --> UI: 11. Response data
+Router --> UI: 12. Response data
 deactivate Router
-UI --> User: 12. Show random story
+UI --> User: 13. Show random story
 deactivate UI
 deactivate User

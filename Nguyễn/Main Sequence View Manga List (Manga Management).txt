@@ -1,0 +1,67 @@
+@startuml
+title View Manga List (Manga Management)
+
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+actor "Content Moderator" as MOD
+boundary "Manga Management UI" as UI
+boundary Router as RT
+control AccessTokenGuard as ATG
+control RolesGuard as RG
+control MangaController as CT
+control MangaService as SV
+
+MOD -> UI: 1. Open Manga Management
+activate MOD
+activate UI
+
+UI -> RT: 2. GET /api/manga/admin/management
+activate RT
+
+ref over RT, RG : 3. Check auth and role
+
+alt 4. Unauthorized
+  RT --> UI: 4.1 HTTP 401
+  UI --> MOD: 4.2 Show login required
+else 4. Permission denied
+  RT --> UI: 4.3 HTTP 403
+  UI --> MOD: 4.4 Show permission denied
+else 4. Access granted
+  RT -> CT: 5. getManagementList(query)
+  activate CT
+
+  CT -> SV: 6. getManagementList(query)
+  activate SV
+
+  ref over SV : 7. Query list and stats
+
+  SV --> CT: 8. Management list response
+  deactivate SV
+
+  CT --> RT: 9. HTTP 200
+  deactivate CT
+
+  RT --> UI: 10. Return list + stats
+end
+
+deactivate RT
+
+opt 11. No manga found
+  UI --> MOD: 11.1 Show empty state
+end
+
+UI --> MOD: 12. Show table, filters, stats
+deactivate UI
+deactivate MOD
+@enduml

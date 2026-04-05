@@ -6,7 +6,7 @@ boundary Router
 control GenreController
 control ValidationPipe
 control GenreService
-entity GenreModel
+entity ":GenreModel" as GenreModel
 database MongoDB
 
 Admin -> UI: 1. Click "Add Genre" + submit form

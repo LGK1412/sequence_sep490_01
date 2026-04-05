@@ -7,7 +7,7 @@ control StylesController
 control AccessTokenGuard
 control RolesGuard
 control StylesService
-entity StylesModel
+entity ":StylesModel" as StylesModel
 database MongoDB
 
 Admin -> UI: 1. Click Delete + confirm dialog
@@ -56,18 +56,23 @@ deactivate MongoDB
 StylesModel --> StylesService: 12. Deleted style
 deactivate StylesModel
 
+StylesService -> StylesService: 13. Check style
+activate StylesService
+space
+deactivate StylesService
+
 opt Not found (null)
-    StylesService --> StylesController: 12.1. null
-    StylesController --> Router: 12.2. HTTP 200 (null) or 404
-    Router --> UI: 12.3. Delete failed
-    UI --> Admin: 12.4. Show error message
+    StylesService --> StylesController: 13.1. null
+    StylesController --> Router: 13.2. HTTP 200 (null) or 404
+    Router --> UI: 13.3. Delete failed
+    UI --> Admin: 13.4. Show error message
 end
 
-StylesService --> StylesController: 13. Deleted style
+StylesService --> StylesController: 14. Deleted style
 deactivate StylesService
-StylesController --> Router: 14. HTTP 200 response
+StylesController --> Router: 15. HTTP 200 response
 deactivate StylesController
-Router --> UI: 15. Return deleted style
+Router --> UI: 16. Return deleted style
 deactivate Router
 
 UI --> Admin: 17. Delete success

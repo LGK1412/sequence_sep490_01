@@ -8,7 +8,7 @@ control AccessTokenGuard
 control RolesGuard
 control ValidationPipe
 control ReportsService
-entity ReportsModel
+entity ":ReportsModel" as ReportsModel
 database MongoDB
 
 User -> UI: 1. Click "Report" + open dialog
@@ -99,5 +99,3 @@ deactivate Router
 UI --> User: 19. Show success + close dialog
 deactivate UI
 deactivate User
-
-@enduml

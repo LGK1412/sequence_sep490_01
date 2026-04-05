@@ -5,8 +5,8 @@ boundary "Chapter / Reading Page (UI)" as UI
 boundary Router
 control ChapterController
 control ChapterService
-entity ProgressModel
-entity HistoryModel
+entity ":ProgressModel" as ProgressModel
+entity ":HistoryModel" as HistoryModel
 database MongoDB
 
 User -> UI: 1. Finish / read chapter
@@ -25,8 +25,8 @@ space
 deactivate ChapterController
 
 ChapterController -> ChapterService: 5. createStoryHistory(user_id, story_id)
-
 activate ChapterService
+
 ChapterService -> ProgressModel: 6. Find latest progress by user
 activate ProgressModel
 
@@ -38,27 +38,36 @@ deactivate MongoDB
 ProgressModel --> ChapterService: 9. latestProgress
 deactivate ProgressModel
 
-opt No progress found
-    ChapterService --> ChapterController: 9.1. Return message: No progress found
-    ChapterController --> Router: 9.2. HTTP response
-    Router --> UI: 9.3. Update UI
-    UI --> User: 9.4. No progress found
-end
-    ChapterService -> HistoryModel: 10. Upsert history with last_read_chapter
-    activate HistoryModel
-    HistoryModel -> MongoDB: 11. findOneAndUpdate (upsert)
-    activate MongoDB
-    MongoDB --> HistoryModel: 12. Updated history
-    deactivate MongoDB
-    HistoryModel --> ChapterService: 13. History result
-    deactivate HistoryModel
-    ChapterService --> ChapterController: 14. Return history
-
+ChapterService -> ChapterService: 10. Check progress
+activate ChapterService
+space
 deactivate ChapterService
-ChapterController --> Router: 156. HTTP response
+
+opt No progress found
+    ChapterService --> ChapterController: 10.1. Return message: No progress found
+    ChapterController --> Router: 10.2. HTTP response
+    Router --> UI: 10.3. Update UI
+    UI --> User: 10.4. No progress found
+end
+
+ChapterService -> HistoryModel: 11. Upsert history with last_read_chapter
+activate HistoryModel
+HistoryModel -> MongoDB: 12. findOneAndUpdate (upsert)
+activate MongoDB
+MongoDB --> HistoryModel: 13. Updated history
+deactivate MongoDB
+HistoryModel --> ChapterService: 14. History result
+deactivate HistoryModel
+
+ChapterService --> ChapterController: 15. Return history
+deactivate ChapterService
+
+ChapterController --> Router: 16. HTTP response
 deactivate ChapterController
-Router --> UI: 16. Update UI
+
+Router --> UI: 17. Update UI
 deactivate Router
-UI --> User: 17. History saved
+
+UI --> User: 18. History saved
 deactivate UI
 deactivate User

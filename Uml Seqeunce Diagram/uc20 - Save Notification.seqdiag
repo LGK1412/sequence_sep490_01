@@ -5,7 +5,7 @@ boundary "Notification Page" as UI
 boundary Router
 control NotificationController
 control NotificationService
-entity NotificationModel
+entity ":NotificationModel" as NotificationModel
 database MongoDB
 
 User -> UI: 1. Click "Save / Unsave notification"
@@ -21,47 +21,57 @@ activate NotificationController
 NotificationController -> NotificationService: 4. saveNoti(id, payload)
 activate NotificationService
 
-opt Invalid user
-  NotificationService --> NotificationController: 4.1. BadRequestException
-  NotificationController --> Router: 4.2. HTTP error
-  Router --> UI: 4.3. Show error
-  UI --> User: 4.4. Show error
-end
-
-NotificationService -> NotificationModel: 5. findOne(_id, receiver_id)
-activate NotificationModel
-NotificationModel -> MongoDB: 6. query notification
-activate MongoDB
-MongoDB --> NotificationModel: 7. notification data
-deactivate MongoDB
-NotificationModel --> NotificationService: 8. return notification
-deactivate NotificationModel
-
-opt Notification not found
-  NotificationService --> NotificationController: 8.1. NotFoundException
-  NotificationController --> Router: 8.2. HTTP error
-  Router --> UI: 8.3. Show error
-  UI --> User: 8.4. Show error
-end
-
-NotificationService -> NotificationModel: 9. update notification
-activate NotificationModel
-NotificationModel -> MongoDB: 10. save notification
-activate MongoDB
-MongoDB --> NotificationModel: 11. saved
-deactivate MongoDB
-
-NotificationModel --> NotificationService: 12. return updated notification
-deactivate NotificationModel
-
-NotificationService --> NotificationController: 13. success result
+NotificationService -> NotificationService: 5. Check user
+activate NotificationService
+space
 deactivate NotificationService
 
-NotificationController --> Router: 14. HTTP response
+opt Invalid user
+  NotificationService --> NotificationController: 5.1. BadRequestException
+  NotificationController --> Router: 5.2. HTTP error
+  Router --> UI: 5.3. Show error
+  UI --> User: 5.4. Show error
+end
+
+NotificationService -> NotificationModel: 6. findOne(_id, receiver_id)
+activate NotificationModel
+NotificationModel -> MongoDB: 7. query notification
+activate MongoDB
+MongoDB --> NotificationModel: 8. notification data
+deactivate MongoDB
+NotificationModel --> NotificationService: 9. return notification
+deactivate NotificationModel
+
+NotificationService -> NotificationService: 10. Check notification
+activate NotificationService
+space
+deactivate NotificationService
+
+opt Notification not found
+  NotificationService --> NotificationController: 10.1. NotFoundException
+  NotificationController --> Router: 10.2. HTTP error
+  Router --> UI: 10.3. Show error
+  UI --> User: 10.4. Show error
+end
+
+NotificationService -> NotificationModel: 11. update notification
+activate NotificationModel
+NotificationModel -> MongoDB: 12. save notification
+activate MongoDB
+MongoDB --> NotificationModel: 13. saved
+deactivate MongoDB
+
+NotificationModel --> NotificationService: 14. return updated notification
+deactivate NotificationModel
+
+NotificationService --> NotificationController: 15. success result
+deactivate NotificationService
+
+NotificationController --> Router: 16. HTTP response
 deactivate NotificationController
 
-Router --> UI: 15. Response data
+Router --> UI: 17. Response data
 deactivate Router
-UI --> User: 16. Update notification (saved state)
+UI --> User: 18. Update notification (saved state)
 deactivate UI
 deactivate User

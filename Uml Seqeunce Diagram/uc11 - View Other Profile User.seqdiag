@@ -5,7 +5,7 @@ boundary "Public Profile Page" as UI
 boundary Router
 control UserController
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 User -> UI: 1. Click other user's profile
@@ -20,36 +20,46 @@ activate UserController
 UserController -> UserService: 4. getPublicUserById(id)
 activate UserService
 
+UserService -> UserService: 5. Check id
+activate UserService
+space
+deactivate UserService
+
 opt Invalid id
-  UserService --> UserController: 4.1. NotFoundException
-  UserController --> Router: 4.2. HTTP response
-  Router --> UI: 4.3. HTTP response
-  UI --> User: 4.4. Show error
+  UserService --> UserController: 5.1. NotFoundException
+  UserController --> Router: 5.2. HTTP response
+  Router --> UI: 5.3. HTTP response
+  UI --> User: 5.4. Show error
 end
 
-UserService -> UserModel: 5. findById().select(username,avatar,bio,role)
+UserService -> UserModel: 6. findById().select(username,avatar,bio,role)
 activate UserModel
-UserModel -> MongoDB: 6. get user by id
+UserModel -> MongoDB: 7. get user by id
 activate MongoDB
-MongoDB --> UserModel: 7. return user
+MongoDB --> UserModel: 8. return user
 deactivate MongoDB
-UserModel --> UserService: 8. return user
+UserModel --> UserService: 9. return user
 deactivate UserModel
 
+UserService -> UserService: 10. Check user
+activate UserService
+space
+deactivate UserService
+
 opt User is null
-  UserService --> UserController: 8.1. NotFoundException
-  UserController --> Router: 8.2. HTTP response
-  Router --> UI: 8.3. HTTP response
-  UI --> User: 8.4. Show error
+  UserService --> UserController: 10.1. NotFoundException
+  UserController --> Router: 10.2. HTTP response
+  Router --> UI: 10.3. HTTP response
+  UI --> User: 10.4. Show error
 end
 
-UserService --> UserController: 9. Return public profile
+UserService --> UserController: 11. Return public profile
 deactivate UserService
-UserController --> Router: 10. HTTP response
+UserController --> Router: 12. HTTP response
 deactivate UserController
 
-Router --> UI: 11. Render profile / show error
+Router --> UI: 13. Render profile / show error
 deactivate Router
-UI --> User: 12. Show profile
+UI --> User: 14. Show profile
 deactivate UI
 deactivate User

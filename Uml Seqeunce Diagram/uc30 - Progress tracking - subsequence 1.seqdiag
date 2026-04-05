@@ -3,8 +3,8 @@ bottomparticipants
 title Subsequence - Progress tracking
 
 control ChapterService
-entity ProgressModel
-entity ChapterModel
+entity ":ProgressModel" as ProgressModel
+entity ":ChapterModel" as ChapterModel
 database MongoDB
 
 ChapterService -> ProgressModel: 1. Request previous progress

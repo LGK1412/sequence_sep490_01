@@ -4,7 +4,7 @@ title Subsequence - Update Verified Status
 
 control AuthService
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 AuthService -> UserService: 1. Update verified status

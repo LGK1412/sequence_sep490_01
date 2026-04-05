@@ -5,27 +5,33 @@ boundary "Chapter Detail Page (UI)" as UI
 boundary Router
 control ChapterController
 control ChapterService
-entity ProgressModel
-entity ChapterModel
-entity HistoryModel
+entity ":HistoryModel" as HistoryModel
 database MongoDB
 
 User -> UI: 1. Read & scroll chapter
 activate User
 activate UI
+
 UI -> Router: 2. POST progress
 activate Router
-Router -> ChapterController: 3. createChapterProgress()
 
+Router -> ChapterController: 3. createChapterProgress()
 activate ChapterController
+
 ChapterController -> ChapterController: 4. Parse params & convert ObjectId
 activate ChapterController
 space
 deactivate ChapterController
+
 ChapterController -> ChapterService: 5. createChapterProgress(user_id, chapter_id, percent)
 activate ChapterService
 
-ref over ChapterService, MongoDB: 6. Subsequence - Progress tracking
+ref over ChapterService, MongoDB: 3.30.b.i. Subsequence - Progress tracking
+
+ChapterService -> ChapterService: 6. Check chapter has manga
+activate ChapterService
+space
+deactivate ChapterService
 
 opt Chapter has no manga
     ChapterService --> ChapterController: 6.1. Return chapterProgress
@@ -34,7 +40,7 @@ opt Chapter has no manga
     UI --> User: 6.4. Progress saved
 end
 
-ChapterService -> HistoryModel: 7.  Update reading history
+ChapterService -> HistoryModel: 7. Update reading history
 activate HistoryModel
 HistoryModel -> MongoDB: 8. Upsert history record
 activate MongoDB
@@ -45,10 +51,13 @@ deactivate HistoryModel
 
 ChapterService --> ChapterController: 11. Return chapterProgress
 deactivate ChapterService
+
 ChapterController --> Router: 12. HTTP response
 deactivate ChapterController
+
 Router --> UI: 13. Progress saved
 deactivate Router
+
 UI --> User: 14. Progress saved
 deactivate UI
 deactivate User

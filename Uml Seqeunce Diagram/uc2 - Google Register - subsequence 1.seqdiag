@@ -5,7 +5,7 @@ title Subsequence - Google Register
 control AuthService
 control GoogleOAuth
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 AuthService -> UserService: 1. findByEmail(email)
@@ -22,18 +22,23 @@ deactivate UserModel
 UserService --> AuthService: 6. Result
 deactivate UserService
 
+AuthService -> AuthService: 7. Check user exist
+activate AuthService
+space
+deactivate AuthService
+
 opt User not found
-    AuthService -> UserService: 6.1. createUserGoogle()
+    AuthService -> UserService: 7.1. createUserGoogle()
     activate UserService
-    UserService -> UserModel: 6.2. insert new user (verified = true)
+    UserService -> UserModel: 7.2. insert new user (verified = true)
     activate UserModel
-    UserModel -> MongoDB: 6.3. Insert user data
+    UserModel -> MongoDB: 7.3. Insert user data
     activate MongoDB
-    MongoDB --> UserModel: 6.4. New user created
+    MongoDB --> UserModel: 7.4. New user created
     deactivate MongoDB
-    UserModel --> UserService: 6.5. New user
+    UserModel --> UserService: 7.5. New user
     deactivate UserModel
-    UserService --> AuthService: 6.6. New user
+    UserService --> AuthService: 7.6. New user
     deactivate UserService
     deactivate AuthService
 end

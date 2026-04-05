@@ -7,7 +7,7 @@ control PoliciesController
 control AccessTokenGuard
 control RolesGuard
 control PoliciesService
-entity PoliciesModel
+entity ":PoliciesModel" as PoliciesModel
 database MongoDB
 
 Admin -> UI: 1. Open policy page
@@ -35,21 +35,26 @@ deactivate MongoDB
 PoliciesModel --> PoliciesService: 8. policy
 deactivate PoliciesModel
 
-opt Not found
-  PoliciesService --> PoliciesController: 8.1. Throw NotFoundException
-  PoliciesController --> Router: 8.2. HTTP 404
-  Router --> UI: 8.3. Load failed
-  UI --> Admin: 8.4. Show error message
-end
-
-PoliciesService --> PoliciesController: 9. policy
+PoliciesService -> PoliciesService: 9. Check policy
+activate PoliciesService
+space
 deactivate PoliciesService
 
-PoliciesController --> Router: 10. HTTP 200 response
+opt Not found
+  PoliciesService --> PoliciesController: 9.1. Throw NotFoundException
+  PoliciesController --> Router: 9.2. HTTP 404
+  Router --> UI: 9.3. Load failed
+  UI --> Admin: 9.4. Show error message
+end
+
+PoliciesService --> PoliciesController: 10. policy
+deactivate PoliciesService
+
+PoliciesController --> Router: 11. HTTP 200 response
 deactivate PoliciesController
 
-Router --> UI: 11. Return policy
+Router --> UI: 12. Return policy
 deactivate Router
-UI --> Admin: 12. Display policy data
+UI --> Admin: 13. Display policy data
 deactivate UI
 deactivate Admin

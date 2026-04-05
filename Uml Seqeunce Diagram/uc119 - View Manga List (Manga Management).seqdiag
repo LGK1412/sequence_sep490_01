@@ -1,0 +1,55 @@
+bottomparticipants
+
+actor "Content Moderator" as MOD
+boundary "Manga Management UI" as UI
+boundary "Router" as RT
+control "MangaController" as CT
+control "MangaService" as SV
+
+MOD -> UI: 1. Open Manga Management
+activate MOD
+activate UI
+
+UI -> RT: 2. GET /api/manga/admin/management
+activate RT
+
+ref over RT : 3.119.b.i. Subsequence - Check auth and moderator role
+
+alt Unauthorized
+  RT --> UI: 3.1.1. HTTP 401
+  UI --> MOD: 3.1.2. Show login required
+else Permission denied
+  RT --> UI: 3.2.1. HTTP 403
+  UI --> MOD: 3.2.2. Show permission denied
+end
+  RT -> CT: 4. getManagementList(query)
+  activate CT
+
+  CT -> SV: 5. getManagementList(query)
+  activate SV
+
+  ref over SV, MongoDB: 3.119.b.ii. Subsequence - Query list and stats
+
+  SV --> CT: 7. Management list response
+  deactivate SV
+
+  CT --> RT: 8. HTTP 200
+  deactivate CT
+
+  RT --> UI: 9. Return list + stats
+
+deactivate RT
+
+UI -> UI: 10. Check data
+activate UI
+space
+deactivate UI
+
+opt No manga found
+  UI --> MOD: 10.1 Show empty state
+end
+
+UI --> MOD: 11. Show table, filters, stats
+deactivate UI
+deactivate MOD
+@enduml

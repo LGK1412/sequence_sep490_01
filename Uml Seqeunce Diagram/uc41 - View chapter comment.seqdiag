@@ -6,7 +6,7 @@ boundary Router
 control CommentController
 control CommentService
 control ReplyService
-entity CommentModel
+entity ":CommentModel" as CommentModel
 database MongoDB
 
 User -> UI: 1. Open chapter comments
@@ -19,40 +19,48 @@ activate Router
 Router -> CommentController: 3. Call get comment
 activate CommentController
 
+CommentController -> CommentController: 4. Check token
+activate CommentController
+space
+deactivate CommentController
+
 opt Token Invalid
-    CommentController --> Router: 3.1. 401 Unauthorized
-    Router --> UI: 3.2. Show error
-    UI --> User: 3.3. Show error
+    CommentController --> Router: 4.1. 401 Unauthorized
+    Router --> UI: 4.2. Show error
+    UI --> User: 4.3. Show error
 end
 
-CommentController -> CommentService: 4. Call get comment
-
+CommentController -> CommentService: 5. Call get comment
 activate CommentService
 
-CommentService -> CommentModel: 5. Get comment
+CommentService -> CommentModel: 6. Get comment
 activate CommentModel
-CommentModel --> CommentService: 6. Return comments
+CommentModel --> CommentService: 7. Return comments
 deactivate CommentModel
 
-CommentService -> ReplyService: 7. Get reply count
+CommentService -> ReplyService: 8. Get reply count
 activate ReplyService
-ReplyService -> MongoDB: 8. Aggregate reply counts
+ReplyService -> MongoDB: 9. Aggregate reply counts
 activate MongoDB
-MongoDB --> ReplyService: 9. replyMap
+MongoDB --> ReplyService: 10. replyMap
 deactivate MongoDB
-ReplyService --> CommentService: 10. Reply count data
+ReplyService --> CommentService: 11. Reply count data
 deactivate ReplyService
 
-CommentService -> CommentService: 11. Merge replyCount & usernames
+CommentService -> CommentService: 12. Merge replyCount & usernames
 activate CommentService
 space
 deactivate CommentService
-CommentService --> CommentController: 12. Return comments
+
+CommentService --> CommentController: 13. Return comments
 deactivate CommentService
-CommentController --> Router: 13. HTTP response
+
+CommentController --> Router: 14. HTTP response
 deactivate CommentController
-Router --> UI: 14. Render comments
+
+Router --> UI: 15. Render comments
 deactivate Router
-UI --> User: 15. View comments
+
+UI --> User: 16. View comments
 deactivate UI
 deactivate User

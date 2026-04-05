@@ -9,7 +9,7 @@ control ChapterService
 control MangaService
 control UserService
 control NotificationService
-entity ReplyModel
+entity ":ReplyModel" as ReplyModel
 database MongoDB
 
 User -> UI: 1. Reply to a comment
@@ -21,6 +21,11 @@ activate Router
 
 Router -> ReplyController: 3. createCommentChapter(dto, req)
 activate ReplyController
+
+ReplyController -> ReplyController: 3. Check token / role
+activate ReplyController
+space
+deactivate ReplyController
 
 opt Token / Role Invalid
     ReplyController --> Router: 3.1 401 / 403 Error
@@ -43,32 +48,42 @@ loop User not exist / User is banned
     UI --> User: 5.4 Error message
 end
 
-ref over ReplyService, MongoDB: 6. Subsequence - Reply comment 1
+ref over ReplyService, MongoDB: 3.44.b.i. Subsequence - Reply comment 1
 
-ReplyService -> UserService: 7. getUserById(receiver_id)
+ReplyService -> UserService: 6. getUserById(receiver_id)
 activate UserService
-UserService --> ReplyService: 8. receiver
+UserService --> ReplyService: 7. receiver
 deactivate UserService
+
+ReplyService -> ReplyService: 8. Check receiver
+activate ReplyService
+space
+deactivate ReplyService
 
 ReplyService -> NotificationService: 9. createNotification(dto)
 activate NotificationService
 NotificationService --> ReplyService: 10. send_noti_result
 deactivate NotificationService
 
+ReplyService -> ReplyService: 11. Check author exists
+activate ReplyService
+space
+deactivate ReplyService
+
 opt Manga has author
-    ReplyService -> UserService: 10.1. removeDeviceId(authorId, send_noti_result)
+    ReplyService -> UserService: 11.1. removeDeviceId(authorId, send_noti_result)
     activate UserService
-    UserService --> ReplyService: 10.2. done
+    UserService --> ReplyService: 11.2. done
     deactivate UserService
 end
 
-ReplyService --> ReplyController: 11. savedReply
+ReplyService --> ReplyController: 12. savedReply
 deactivate ReplyService
 
-ReplyController --> Router: 12. HTTP response (success)
+ReplyController --> Router: 13. HTTP response (success)
 deactivate ReplyController
-Router --> UI: 13. Update UI
+Router --> UI: 14. Update UI
 deactivate Router
-UI --> User: 14. View new reply
+UI --> User: 15. View new reply
 deactivate UI
 deactivate User

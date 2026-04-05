@@ -1,0 +1,53 @@
+@startuml
+title Subsequence - Check auth and moderator role
+
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+}
+
+boundary Router as RT
+control AccessTokenGuard as ATG
+control RolesGuard as RG
+
+RT -> ATG: 1. canActivate()
+activate RT
+activate ATG
+
+ATG -> ATG: 2. Read access_token
+
+alt 3. No token
+  ATG --> RT: 3.1 Unauthorized
+else 3. Token exists
+  ATG -> ATG: 3.2 Verify token
+
+  alt 4. Token invalid
+    ATG --> RT: 4.1 Unauthorized
+  else 4. Token valid
+    ATG --> RT: 4.2 Attach request.user
+    deactivate ATG
+
+    RT -> RG: 5. canActivate()
+    activate RG
+    RG -> RG: 6. Read @Roles
+    RG -> RG: 7. Check role
+
+    alt 8. Role denied
+      RG --> RT: 8.1 Forbidden
+    else 8. Role accepted
+      RG --> RT: 8.2 Access granted
+    end
+    deactivate RG
+  end
+end
+
+deactivate RT
+@enduml

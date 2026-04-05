@@ -1,17 +1,11 @@
-@startuml
-skinparam shadowing false
-skinparam entityBackgroundColor white
-skinparam actorBackgroundColor white
-skinparam boundaryBackgroundColor white
-skinparam controlBackgroundColor white
-skinparam databaseBackgroundColor white
+bottomparticipants
 
 actor Admin
 boundary "Emoji Pack" as UI
 boundary Router
 control "EmojiPackController" as Controller
-entity "EmojiPackService" as Service
-entity "EmojiPackModel" as Model
+control "EmojiPackService" as Service
+entity ":EmojiPackModel" as Model
 database MongoDB
 
 Admin -> UI : 1. Click "Delete" button

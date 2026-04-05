@@ -1,0 +1,70 @@
+bottomparticipants
+
+title Subsequence - Get license queue for content moderation
+
+actor "Content Moderator" as Moderator
+boundary "Content Management UI" as UI
+boundary Router
+control MangaController
+control MangaService
+entity ":MangaModel" as MangaModel
+database MongoDB
+
+Moderator -> UI: 1. Open "Content Management"
+activate Moderator
+activate UI
+
+UI -> Router: 2. GET /api/manga/admin/licenses?status=pending&q=&page=1&limit=20
+activate Router
+
+Router -> MangaController: 3. getLicenseQueue(status, q, page, limit)
+activate MangaController
+
+MangaController -> MangaService: 4. getLicenseQueue("pending", "", 1, 20)
+activate MangaService
+
+MangaService -> MangaModel: 5. find(match).populate().sort().skip().limit()
+activate MangaModel
+MangaModel -> MongoDB: 6. Query queue items
+activate MongoDB
+MongoDB --> MangaModel: 7. Queue items
+deactivate MongoDB
+MangaModel --> MangaService: 8. Return queue items
+deactivate MangaModel
+
+MangaService -> MangaModel: 9. countDocuments(match)
+activate MangaModel
+MangaModel -> MongoDB: 10. Count total items
+activate MongoDB
+MongoDB --> MangaModel: 11. Total count
+deactivate MongoDB
+MangaModel --> MangaService: 12. Return total
+deactivate MangaModel
+
+MangaService -> MangaModel: 13. aggregate(group by licenseStatus)
+activate MangaModel
+MangaModel -> MongoDB: 14. Aggregate stats
+activate MongoDB
+MongoDB --> MangaModel: 15. Stats result
+deactivate MongoDB
+MangaModel --> MangaService: 16. Return stats
+deactivate MangaModel
+
+MangaService --> MangaController: 17. Return queue response(data, total, page, limit, stats)
+deactivate MangaService
+
+MangaController --> Router: 18. HTTP 200 response
+deactivate MangaController
+
+Router --> UI: 19. Return moderation queue
+deactivate Router
+
+opt No items found
+  UI --> Moderator: 19.1. Show empty state
+end
+
+UI --> Moderator: 20. Display queue list + stats
+deactivate UI
+deactivate Moderator
+
+@enduml

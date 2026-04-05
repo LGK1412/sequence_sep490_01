@@ -5,7 +5,7 @@ boundary "Manga Rating Form (UI)" as UI
 boundary Router
 control RatingController
 control RatingService
-entity RatingModel
+entity ":RatingModel" as RatingModel
 database MongoDB
 
 User -> UI: 1. Submit rating & comment
@@ -18,37 +18,50 @@ activate Router
 Router -> RatingController: 3. upsert()
 activate RatingController
 
+RatingController -> RatingController: 4. Validate input
+activate RatingController
+space
+deactivate RatingController
+
 loop mangaId missing / Invalid mangaId / Rating missing / Comment missing
-    RatingController --> Router: 3.1. Return 400 Bad Request
-    Router --> UI: 3.2. Return 400 Bad Request
-    UI --> User: 3.3. Show error message
+    RatingController --> Router: 4.1. Return 400 Bad Request
+    Router --> UI: 4.2. Return 400 Bad Request
+    UI --> User: 4.3. Show error message
 end
 
-RatingController -> RatingService: 4. Call upsertRating
-
+RatingController -> RatingService: 5. Call upsertRating
 activate RatingService
-opt Rating out of range
-    RatingService --> RatingController: 4.1. Error (Rating out of range)
-    RatingController --> Router: 4.2. Return 400 Bad Request
-    Router --> UI: 4.3. Return 400 Bad Request
-    UI --> User: 4.4. Show error message
-end
 
-RatingService -> RatingModel: 5. Update rating
-activate RatingModel
-RatingModel -> MongoDB: 6. Upsert rating document
-activate MongoDB
-MongoDB --> RatingModel: 7. Return rating document
-deactivate MongoDB
-RatingModel --> RatingService: 8. Rating result
-deactivate RatingModel
-RatingService --> RatingController: 9. Return rating document
+RatingService -> RatingService: 6. Check rating range
+activate RatingService
+space
 deactivate RatingService
 
-RatingController --> Router: 10. HTTP response (success)
+opt Rating out of range
+    RatingService --> RatingController: 6.1. Error (Rating out of range)
+    RatingController --> Router: 6.2. Return 400 Bad Request
+    Router --> UI: 6.3. Return 400 Bad Request
+    UI --> User: 6.4. Show error message
+end
+
+RatingService -> RatingModel: 7. Update rating
+activate RatingModel
+RatingModel -> MongoDB: 8. Upsert rating document
+activate MongoDB
+MongoDB --> RatingModel: 9. Return rating document
+deactivate MongoDB
+RatingModel --> RatingService: 10. Rating result
+deactivate RatingModel
+
+RatingService --> RatingController: 11. Return rating document
+deactivate RatingService
+
+RatingController --> Router: 12. HTTP response (success)
 deactivate RatingController
-Router --> UI: 11. Show rating result
+
+Router --> UI: 13. Show rating result
 deactivate Router
-UI --> User: 12. Rating saved
+
+UI --> User: 14. Rating saved
 deactivate UI
 deactivate User

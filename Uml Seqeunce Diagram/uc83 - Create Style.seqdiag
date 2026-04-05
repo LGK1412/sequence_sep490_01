@@ -7,7 +7,7 @@ control StylesController
 control AccessTokenGuard
 control RolesGuard
 control StylesService
-entity StylesModel
+entity ":StylesModel" as StylesModel
 database MongoDB
 
 Admin -> UI: 1. Open "Add Style" dialog + submit form
@@ -27,53 +27,64 @@ end
 
 Router -> AccessTokenGuard: 4. canActivate(request)
 activate AccessTokenGuard
-opt Token invalid
-    AccessTokenGuard --> Router: 4.1. Deny
-    Router --> UI: 4.2. 401 Unauthorized
-    UI --> Admin: 4.3. Show error message
-end
-AccessTokenGuard --> Router: 5. Allow
+
+AccessTokenGuard -> AccessTokenGuard: 5. Client validate (name, description)
+activate AccessTokenGuard
+space
 deactivate AccessTokenGuard
 
-Router -> RolesGuard: 6. checkRole(ADMIN)
-activate RolesGuard
-opt Role invalid
-    RolesGuard --> Router: 6.1. Deny
-    Router --> UI: 6.2. 403 Forbidden
-    UI --> Admin: 6.3. Show error message
+opt Token invalid
+    AccessTokenGuard --> Router: 5.1. Deny
+    Router --> UI: 5.2. 401 Unauthorized
+    UI --> Admin: 5.3. Show error message
 end
-RolesGuard --> Router: 7. Allow
+AccessTokenGuard --> Router: 6. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 7. checkRole(ADMIN)
+activate RolesGuard
+
+opt Role invalid
+    RolesGuard --> Router: 7.1. Deny
+    Router --> UI: 7.2. 403 Forbidden
+    UI --> Admin: 7.3. Show error message
+end
+RolesGuard --> Router: 8. Allow
 deactivate RolesGuard
 
-Router -> StylesController: 8. create(dto)
+Router -> StylesController: 9. create(dto)
 activate StylesController
 
-StylesController -> StylesService: 9. create(body)
+StylesController -> StylesService: 10. create(body)
 activate StylesService
 
-StylesService -> StylesModel: 10. create(style)
+StylesService -> StylesModel: 11. create(style)
 activate StylesModel
-StylesModel -> MongoDB: 11. insert document
+StylesModel -> MongoDB: 12. insert document
 activate MongoDB
-MongoDB --> StylesModel: 12. Saved document
+MongoDB --> StylesModel: 13. Saved document
 deactivate MongoDB
-StylesModel --> StylesService: 13. Created style
+StylesModel --> StylesService: 14. Created style
 deactivate StylesModel
+
+StylesService -> StylesService: 15. Check duplicate
+activate StylesService
+space
+deactivate StylesService
+
 opt Duplicate name or DB error
-    StylesService --> StylesController: 13.1. Throw error
-    StylesController --> Router: 13.2. HTTP 400/500
-    Router --> UI: 13.3. Create failed
-    UI --> Admin: 13.4. Show error message
+    StylesService --> StylesController: 15.1. Throw error
+    StylesController --> Router: 15.2. HTTP 400/500
+    Router --> UI: 15.3. Create failed
+    UI --> Admin: 15.4. Show error message
 end
 
-StylesService --> StylesController: 14. Created style
+StylesService --> StylesController: 16. Created style
 deactivate StylesService
-StylesController --> Router: 15. HTTP 201 response
+StylesController --> Router: 17. HTTP 201 response
 deactivate StylesController
-Router --> UI: 16. Return created style
+Router --> UI: 18. Return created style
 deactivate Router
-UI --> Admin: 17. Create style success
+UI --> Admin: 19. Create style success
 deactivate UI
 deactivate Admin
-
-@enduml

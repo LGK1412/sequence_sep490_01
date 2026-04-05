@@ -6,9 +6,8 @@ boundary Router
 control "DonationController" as Controller
 entity "DonationService" as Service
 entity "DonationItemModel" as ItemModel
-entity "UserModel" as UserModel
-entity "DonationModel" as DonationModel
-entity "EventEmitter" as Event
+entity ":UserModel" as UserModel
+entity ":DonationModel" as DonationModel
 database MongoDB
 
 User -> UI : 1. Click Donate
@@ -76,32 +75,36 @@ deactivate MongoDB
 UserModel --> Service : 29. data
 deactivate UserModel
 
+Service -> Service: 30. Check point
+activate Service
+space
+deactivate Service
+
 alt insufficient points
-  Service --> Controller : 29.1.1. ForbiddenException
-  Controller --> Router : 29.1.2. HTTP response (403 error)
-  Router --> UI : 29.1.3. Show error
-  UI --> User: 29.1.4. Show "You don't have\n enough point" message
+  Service --> Controller : 30.1.1. ForbiddenException
+  Controller --> Router : 30.1.2. HTTP response (403 error)
+  Router --> UI : 30.1.3. Show error
+  UI --> User: 30.1.4. Show "You don't have\n enough point" message
 else success
-  Service -> UserModel : 28.2.1. sender.point -= totalPrice\nsave()
+  Service -> UserModel : 30.2.1. sender.point -= totalPrice\nsave()
   activate UserModel
-  Service -> UserModel : 28.2.2. receiver.author_point += earned\nsave()
+  Service -> UserModel : 30.2.2. receiver.author_point += earned\nsave()
   deactivate UserModel
-  Service -> DonationModel : 29.2.3. Call create(donation) method
+  Service -> DonationModel : 30.2.3. Call create(donation) method
   activate DonationModel
-  DonationModel -> MongoDB : 29.2.4. Execute query
+  DonationModel -> MongoDB : 30.2.4. Execute query
   activate MongoDB
-  MongoDB --> DonationModel : 29.2.5. document
+  MongoDB --> DonationModel : 30.2.5. document
   deactivate MongoDB
-  DonationModel --> Service: 29.2.6. document
+  DonationModel --> Service: 30.2.6. document
   deactivate DonationModel
-  Service --> Controller : 29.2.7. Success response
+  Service --> Controller : 30.2.7. Success response
   deactivate Service
-  Controller --> Router : 29.2.8. HTTP response
+  Controller --> Router : 30.2.8. HTTP response
   deactivate Controller
-  Router --> UI : 29.2.9. Success message
+  Router --> UI : 30.2.9. Success message
   deactivate Router
-  UI -> User : 29.2.10. Show "Donation success"
+  UI -> User : 30.2.10. Show "Donation success"
   deactivate UI
   deactivate User
 end
-@enduml

@@ -1,11 +1,10 @@
-deactivate MangaService
-
+bottomparticipants
 actor User
 boundary "Chapter Reader" as UI
 boundary Router
 control ChapterController
 control ChapterService
-entity ChapterModel
+entity ":ChapterModel" as ChapterModel
 database MongoDB
 
 User -> UI: 1. Open chapter content
@@ -30,21 +29,26 @@ deactivate MongoDB
 ChapterModel --> ChapterService: 8. docs[]
 deactivate ChapterModel
 
-opt Chapter not found
-  ChapterService --> ChapterController: 8.1. NotFoundException
-  ChapterController --> Router: 8.2. HTTP error
-  Router --> UI: 8.3. Show error
-  UI --> User: 8.4. Show error
-end
-
-ChapterService --> ChapterController: 9. return compact chapter
+ChapterService -> ChapterService: 9. Check chapter
+activate ChapterService
+space
 deactivate ChapterService
 
-ChapterController --> Router: 10. HTTP response
+opt Chapter not found
+  ChapterService --> ChapterController: 9.1. NotFoundException
+  ChapterController --> Router: 9.2. HTTP error
+  Router --> UI: 9.3. Show error
+  UI --> User: 9.4. Show error
+end
+
+ChapterService --> ChapterController: 10. return compact chapter
+deactivate ChapterService
+
+ChapterController --> Router: 11. HTTP response
 deactivate ChapterController
 
-Router --> UI: 11. Response data
+Router --> UI: 12. Response data
 deactivate Router
-UI --> User: 12. Render chapter (text / image)
+UI --> User: 13. Render chapter (text / image)
 deactivate UI
 deactivate User

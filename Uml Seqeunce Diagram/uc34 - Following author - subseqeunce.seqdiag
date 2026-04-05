@@ -5,7 +5,7 @@ title Subsequence - Following Author
 control UserService
 control NotificationService
 control EventEmitter
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 UserService -> UserModel: 1. Find follower username
@@ -17,6 +17,7 @@ MongoDB --> UserModel: 3. Follower data
 deactivate MongoDB
 UserModel --> UserService: 4. Follower data
 deactivate UserModel
+
 UserService -> UserModel: 5. Find author device_id
 activate UserModel
 UserModel -> MongoDB: 6. findById authorId
@@ -30,6 +31,7 @@ UserService -> NotificationService: 9. Send follow notification
 activate NotificationService
 NotificationService --> UserService: 10. Send result
 deactivate NotificationService
+
 UserService -> UserService: 11. Remove failed device tokens
 activate UserService
 space
@@ -40,19 +42,25 @@ activate EventEmitter
 EventEmitter --> UserService: 13. Return result
 deactivate EventEmitter
 
+UserService -> UserService: 14. Check following state
+activate UserService
+space
+deactivate UserService
+
 opt Already following
-    UserService -> UserService: 13.1. Remove author from following_authors
+    UserService -> UserService: 14.1. Remove author from following_authors
     activate UserService
     space
     deactivate UserService
 end
 
-UserService -> UserModel: 14. Save updated following_authors
+UserService -> UserModel: 15. Save updated following_authors
 activate UserModel
-UserModel -> MongoDB: 15. Save user
+UserModel -> MongoDB: 16. Save user
 activate MongoDB
-MongoDB --> UserModel: 16. Saved
+MongoDB --> UserModel: 17. Saved
 deactivate MongoDB
-UserModel --> UserService: 17. Save result
+UserModel --> UserService: 18. Save result
 deactivate UserModel
+
 deactivate UserService

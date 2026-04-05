@@ -5,7 +5,7 @@ boundary "Manage Manga UI" as UI
 boundary Router
 control MangaController
 control MangaService
-entity MangaModel
+entity ":MangaModel" as MangaModel
 database MongoDB
 
 Author -> UI: 1. Click Toggle Delete / Restore
@@ -18,73 +18,117 @@ activate Router
 Router -> MangaController: 3. toggleDelete(mangaId, req)
 activate MangaController
 
+MangaController -> MangaController: 4. Check token / role
+activate MangaController
+space
+deactivate MangaController
+
 alt Token Invalid
-    MangaController --> Router: 3.1.1. 401 Unauthorized
-    Router --> UI: 3.1.2. Show error
-    UI --> Author: 3.1.3. Error message
-else Role Valid
-   MangaController --> Router: 3.2.1 401 Unauthorized
-    Router --> UI: 3.2.2 Show error
-    UI --> Author: 3.2.3 Error message
+    MangaController --> Router: 4.1.1 401 Unauthorized
+    Router --> UI: 4.1.2 Show error
+    UI --> Author: 4.1.3 Error message
+else Role Invalid
+    MangaController --> Router: 4.2.1 403 Forbidden
+    Router --> UI: 4.2.2 Show error
+    UI --> Author: 4.2.3 Error message
 end
 
-MangaController -> MangaService: 4. toggleDelete(mangaId, authorId)
+MangaController -> MangaController: 5. Check permission (authorId vs req.user)
+activate MangaController
+space
+deactivate MangaController
+
+opt No permission
+    MangaController --> Router: 5.1 401 Unauthorized
+    Router --> UI: 5.2 Show error
+    UI --> Author: 5.3 Error message
+end
+
+MangaController -> MangaService: 6. toggleDelete(mangaId, authorId)
 activate MangaService
 
-opt Invalid mangaId
-    MangaService --> MangaController: 4.1 BadRequestException
-    MangaController --> Router: 4.2 Error response
-    Router --> UI: 4.3 Show error
-    UI --> Author: 4.4 Error message
-end
-
-MangaService -> MangaModel: 5. findOne({_id, authorId})
-activate MangaModel
-MangaModel -> MongoDB: 6. query manga
-activate MongoDB
-MongoDB --> MangaModel: 7. manga / null
-deactivate MongoDB
-MangaModel --> MangaService: 8. result
-deactivate MangaModel
-
-opt Manga not exist or not owned
-    MangaService --> MangaController: 8.1 BadRequestException
-    MangaController --> Router: 8.2 Error response
-    Router --> UI: 8.3 Show error
-    UI --> Author: 8.4 Error message
-end
-
-MangaService -> MangaService: 9. toggle isDeleted flag
+MangaService -> MangaService: 7. Check mangaId valid
 activate MangaService
 space
 deactivate MangaService
 
-MangaService -> MangaModel: 10. updateOne({_id, authorId}, isDeleted)
-activate MangaModel
-MangaModel -> MongoDB: 11. update document
-activate MongoDB
-MongoDB --> MangaModel: 12. update success
-deactivate MongoDB
-MangaModel --> MangaService: 13. updated manga
-deactivate MangaModel
+opt Invalid mangaId
+    MangaService --> MangaController: 7.1 BadRequestException
+    MangaController --> Router: 7.2 Error response
+    Router --> UI: 7.3 Show error
+    UI --> Author: 7.4 Error message
+end
 
-MangaService -> MangaModel: 14. findById(id)
-activate MangaModel
-MangaModel -> MongoDB: 15. query updated manga
-activate MongoDB
-MongoDB --> MangaModel: 16. manga document
-deactivate MongoDB
-MangaModel --> MangaService: 17. manga
-deactivate MangaModel
-
-MangaService --> MangaController: 18. updated manga
+MangaService -> MangaService: 8. Validate ownership query
+activate MangaService
+space
 deactivate MangaService
 
-MangaController --> Router: 19. HTTP response
+MangaService -> MangaModel: 9. findOne({_id, authorId})
+activate MangaModel
+MangaModel -> MongoDB: 10. query manga
+activate MongoDB
+MongoDB --> MangaModel: 11. manga / null
+deactivate MongoDB
+MangaModel --> MangaService: 12. result
+deactivate MangaModel
+
+MangaService -> MangaService: 13. Check manga existence / ownership
+activate MangaService
+space
+deactivate MangaService
+
+opt Manga not exist or not owned
+    MangaService --> MangaController: 13.1 BadRequestException
+    MangaController --> Router: 13.2 Error response
+    Router --> UI: 13.3 Show error
+    UI --> Author: 13.4 Error message
+end
+
+MangaService -> MangaService: 14. Toggle isDeleted flag
+activate MangaService
+space
+deactivate MangaService
+
+MangaService -> MangaModel: 15. updateOne({_id, authorId}, isDeleted)
+activate MangaModel
+MangaModel -> MongoDB: 16. update document
+activate MongoDB
+MongoDB --> MangaModel: 17. update success
+deactivate MongoDB
+MangaModel --> MangaService: 18. updated manga
+deactivate MangaModel
+
+MangaService -> MangaService: 19. Check update success
+activate MangaService
+space
+deactivate MangaService
+
+opt Update failed
+    MangaService --> MangaController: 19.1 BadRequestException
+    MangaController --> Router: 19.2 Error response
+    Router --> UI: 19.3 Show error
+    UI --> Author: 19.4 Error message
+end
+
+MangaService -> MangaModel: 20. findById(id)
+activate MangaModel
+MangaModel -> MongoDB: 21. query updated manga
+activate MongoDB
+MongoDB --> MangaModel: 22. manga document
+deactivate MongoDB
+MangaModel --> MangaService: 23. manga
+deactivate MangaModel
+
+MangaService --> MangaController: 24. updated manga
+deactivate MangaService
+
+MangaController --> Router: 25. HTTP response
 deactivate MangaController
-Router --> UI: 20. Update manga status
+
+Router --> UI: 26. Update manga status
 deactivate Router
-UI --> Author: 21. See delete/restore result
+
+UI --> Author: 27. See delete/restore result
 deactivate UI
 deactivate Author
-@enduml

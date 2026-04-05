@@ -6,7 +6,7 @@ boundary Router
 control UserController
 control UserService
 control JwtService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 User -> UI: 1. Open Following Authors
@@ -18,37 +18,50 @@ activate Router
 
 Router -> UserController: 3. get following
 activate UserController
-UserController -> UserService: 4. get following
 
+UserController -> UserService: 4. get following
 activate UserService
+
 UserService -> JwtService: 5. Verify token
 activate JwtService
 JwtService --> UserService: 6. Decoded
 deactivate JwtService
 
-UserService -> UserModel: 7. Find user
-activate UserModel
-UserModel -> MongoDB: 8. Find user
-activate MongoDB
-MongoDB --> UserModel: 9. Return user
-deactivate MongoDB
-UserModel --> UserService: 10. User data
-deactivate UserModel
-
-opt User not found
-    UserService --> UserController: 10.1. Throw error
-    UserController --> Router: 10.2. HTTP error response
-    Router --> UI: 10.3. Render error message
-    UI --> User: 10.4. Show error
-end
-
-UserService --> UserController: 11. Return followings
+UserService -> UserService: 7. Check decode
+activate UserService
+space
 deactivate UserService
 
-UserController --> Router: 12. HTTP response
+UserService -> UserModel: 8. Find user
+activate UserModel
+UserModel -> MongoDB: 9. Find user
+activate MongoDB
+MongoDB --> UserModel: 10. Return user
+deactivate MongoDB
+UserModel --> UserService: 11. User data
+deactivate UserModel
+
+UserService -> UserService: 12. Check user
+activate UserService
+space
+deactivate UserService
+
+opt User not found
+    UserService --> UserController: 12.1. Throw error
+    UserController --> Router: 12.2. HTTP error response
+    Router --> UI: 12.3. Render error message
+    UI --> User: 12.4. Show error
+end
+
+UserService --> UserController: 13. Return followings
+deactivate UserService
+
+UserController --> Router: 14. HTTP response
 deactivate UserController
-Router --> UI: 13. show list
+
+Router --> UI: 15. show list
 deactivate Router
-UI --> User: 14. Show list
+
+UI --> User: 16. Show list
 deactivate UI
 deactivate User

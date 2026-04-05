@@ -1,0 +1,53 @@
+bottomparticipants
+title Subsequence - Check auth and moderator role
+
+
+boundary "Router" as RT
+control "AccessTokenGuard" as ATG
+control "RolesGuard" as RG
+
+RT -> ATG: 1. canActivate()
+activate RT
+activate ATG
+
+ATG -> ATG: 2. Read access_token
+activate ATG
+space
+deactivate ATG
+
+opt No token
+  ATG --> RT: 2.1 Unauthorized
+end
+
+  ATG -> ATG: 3 Verify token
+  activate ATG
+  space
+  deactivate ATG
+
+  opt Token invalid
+    ATG --> RT: 3.1 Unauthorized
+  end
+
+    ATG --> RT: 4 Attach request.user
+    deactivate ATG
+
+    RT -> RG: 5. canActivate()
+    activate RG
+    RG -> RG: 6. Read @Roles
+    activate RG
+    space
+    deactivate RG
+    RG -> RG: 7. Check role
+    activate RG
+    space
+    deactivate RG
+
+    alt Role denied
+      RG --> RT: 7.1 Forbidden
+    else 8. Role accepted
+      RG --> RT: 7.2 Access granted
+    end
+    deactivate RG
+    
+deactivate RT
+@enduml

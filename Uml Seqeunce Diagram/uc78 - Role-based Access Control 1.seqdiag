@@ -8,8 +8,8 @@ control RolesGuard
 control UsersController
 control UsersService
 control AuditLogsService
-entity UsersModel
-entity AuditLogsModel
+entity ":UsersModel" as UsersModel
+entity ":AuditLogsModel" as AuditLogsModel
 database MongoDB
 
 Admin -> UI: 1. Open "Edit Staff" dialog + choose status (ban/mute/normal)
@@ -17,7 +17,7 @@ activate Admin
 activate UI
 
 opt Client validation failed
-  UI --> Admin: 1.1. Show inline error
+  UI --> Admin: 1.1 Show inline error
 end
 
 UI -> Router: 2. POST /api/user/update-status
@@ -26,101 +26,124 @@ activate Router
 Router -> AccessTokenGuard: 3. canActivate(request)
 activate AccessTokenGuard
 
-opt Token invalid
-  AccessTokenGuard --> Router: 3.1. Deny
-  Router --> UI: 3.2. 401 Unauthorized
-  UI --> Admin: 3.3. Show error message
-end
-
-AccessTokenGuard --> Router: 4. Allow
+AccessTokenGuard -> AccessTokenGuard: 4. Validate token
+activate AccessTokenGuard
+space
 deactivate AccessTokenGuard
 
-Router -> RolesGuard: 5. checkRole(ADMIN)
+opt Token invalid
+  AccessTokenGuard --> Router: 4.1 Deny
+  Router --> UI: 4.2 401 Unauthorized
+  UI --> Admin: 4.3 Show error message
+end
+
+AccessTokenGuard --> Router: 5. Allow
+deactivate AccessTokenGuard
+
+Router -> RolesGuard: 6. checkRole(ADMIN)
 activate RolesGuard
 
-opt Role invalid
-  RolesGuard --> Router: 5.1. Deny
-  Router --> UI: 5.2. 403 Forbidden
-  UI --> Admin: 5.3. Show error message
-end
-
-RolesGuard --> Router: 6. Allow
+RolesGuard -> RolesGuard: 7. Check admin role
+activate RolesGuard
+space
 deactivate RolesGuard
 
-Router -> UsersController: 7. updateStatus(dto, req.user)
+opt Role invalid
+  RolesGuard --> Router: 7.1 Deny
+  Router --> UI: 7.2 403 Forbidden
+  UI --> Admin: 7.3 Show error message
+end
+
+RolesGuard --> Router: 8. Allow
+deactivate RolesGuard
+
+Router -> UsersController: 9. updateStatus(dto, req.user)
 activate UsersController
 
-UsersController -> UsersService: 8. adminUpdateStaffStatus(adminId, userId, status)
+UsersController -> UsersService: 10. adminUpdateStaffStatus(adminId, userId, status)
 activate UsersService
 
-opt Invalid status
-  UsersService --> UsersController: 8.1. Throw BadRequestException
-  UsersController --> Router: 8.2. 400 Bad Request
-  Router --> UI: 8.3. Error response
-  UI --> Admin: 8.4. Show error message
-end
-
-UsersService -> UsersModel: 9. findById(userId)
-activate UsersModel
-UsersModel -> MongoDB: 10. query user by _id
-activate MongoDB
-MongoDB --> UsersModel: 11. user | null
-deactivate MongoDB
-UsersModel --> UsersService: 12. user entity
-deactivate UsersModel
-
-loop Target not found / Target is not staff
-  UsersService --> UsersController: 12.1. Throw NotFoundException
-  UsersController --> Router: 12.2. 404 Not Found
-  Router --> UI: 12.3. Error response
-  UI --> Admin: 12.4. Show error message
-end
-
-UsersService -> UsersModel: 13. updateOne({_id}, {$set:{status}})
-activate UsersModel
-UsersModel -> MongoDB: 14. update status
-activate MongoDB
-MongoDB --> UsersModel: 15. update result
-deactivate MongoDB
-UsersModel --> UsersService: 16. update result
-deactivate UsersModel
-
-opt Update failed
-  UsersService --> UsersController: 16.1. Throw BadRequestException
-  UsersController --> Router: 16.2. 400 Bad Request
-  Router --> UI: 16.3. Error response
-  UI --> Admin: 16.4. Show error message
-end
-
-UsersService -> AuditLogsService: 17. createLog(action=update_status)
-activate AuditLogsService
-AuditLogsService -> AuditLogsModel: 18. create(auditLog)
-activate AuditLogsModel
-AuditLogsModel -> MongoDB: 19. insert document
-activate MongoDB
-MongoDB --> AuditLogsModel: 20. Saved document
-deactivate MongoDB
-AuditLogsModel --> AuditLogsService: 21. Created audit log
-deactivate AuditLogsModel
-AuditLogsService --> UsersService: 22. Log created
-deactivate AuditLogsService
-
-UsersService --> UsersController: 23. { success:true }
+UsersService -> UsersService: 11. Validate status
+activate UsersService
+space
 deactivate UsersService
 
-UsersController --> Router: 24. 200 OK response
+opt Invalid status
+  UsersService --> UsersController: 11.1 BadRequestException
+  UsersController --> Router: 11.2 400 Bad Request
+  Router --> UI: 11.3 Error response
+  UI --> Admin: 11.4 Show error message
+end
+
+UsersService -> UsersModel: 12. findById(userId)
+activate UsersModel
+UsersModel -> MongoDB: 13. query user by _id
+activate MongoDB
+MongoDB --> UsersModel: 14. user | null
+deactivate MongoDB
+UsersModel --> UsersService: 15. user entity
+deactivate UsersModel
+
+UsersService -> UsersService: 16. Check target user
+activate UsersService
+space
+deactivate UsersService
+
+opt Target not found / Target is not staff
+  UsersService --> UsersController: 16.1 NotFoundException
+  UsersController --> Router: 16.2 404 Not Found
+  Router --> UI: 16.3 Error response
+  UI --> Admin: 16.4 Show error message
+end
+
+UsersService -> UsersModel: 17. updateOne({_id}, {$set:{status}})
+activate UsersModel
+UsersModel -> MongoDB: 18. update status
+activate MongoDB
+MongoDB --> UsersModel: 19. update result
+deactivate MongoDB
+UsersModel --> UsersService: 20. update result
+deactivate UsersModel
+
+UsersService -> UsersService: 21. Check update result
+activate UsersService
+space
+deactivate UsersService
+
+opt Update failed
+  UsersService --> UsersController: 21.1 BadRequestException
+  UsersController --> Router: 21.2 400 Bad Request
+  Router --> UI: 21.3 Error response
+  UI --> Admin: 21.4 Show error message
+end
+
+UsersService -> AuditLogsService: 22. createLog(action=update_status)
+activate AuditLogsService
+AuditLogsService -> AuditLogsModel: 23. create(auditLog)
+activate AuditLogsModel
+AuditLogsModel -> MongoDB: 24. insert document
+activate MongoDB
+MongoDB --> AuditLogsModel: 25. Saved document
+deactivate MongoDB
+AuditLogsModel --> AuditLogsService: 26. Created audit log
+deactivate AuditLogsModel
+AuditLogsService --> UsersService: 27. Log created
+deactivate AuditLogsService
+
+UsersService --> UsersController: 28. { success:true }
+deactivate UsersService
+
+UsersController --> Router: 29. 200 OK response
 deactivate UsersController
 
-Router --> UI: 25. Return success response
+Router --> UI: 30. Return success response
 deactivate Router
 
-UI -> UI: 26. Update table state
+UI -> UI: 31. Update table state
 activate UI
 space
 deactivate UI
 
-UI --> Admin: 27. Show success message
+UI --> Admin: 32. Show success message
 deactivate UI
 deactivate Admin
-
-@enduml

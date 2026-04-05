@@ -6,7 +6,7 @@ boundary Router
 control UserController
 control UserService
 control JwtService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 User -> UI: 1. Click Follow / Unfollow
@@ -18,46 +18,59 @@ activate Router
 
 Router -> UserController: 3. toggleFollowAuthor()
 activate UserController
-UserController -> UserService: 4. toggleFollowAuthor(token, authorId)
 
+UserController -> UserService: 4. toggleFollowAuthor(token, authorId)
 activate UserService
+
 UserService -> JwtService: 5. Verify token
 activate JwtService
 JwtService --> UserService: 6. Decoded 
 deactivate JwtService
 
-opt Decoide failed
-    UserService --> UserController: 6.1. Return 401 Unauthorized
-    UserController --> Router: 6.2. Return 401 Unauthorized
-    Router --> UI: 6.3. HTTP response
-    UI --> User: 6.4. Show error
-end
-
-UserService -> UserModel: 7. Find user 
-activate UserModel
-UserModel -> MongoDB: 8. Get user
-activate MongoDB
-MongoDB --> UserModel: 9. User document
-deactivate MongoDB
-UserModel --> UserService: 10. User data
-deactivate UserModel
-
-opt User not found
-    UserService -> UserController: 10.1. Return 401 Unauthorized
-    UserController -> Router: 10.2. Return 401 Unauthorized
-    Router -> UI: 10.3. HTTP response
-    UI -> User: 10.4. Show error
-end
-
-ref over UserService, MongoDB: 11. Subsequence - Following Author
-
-UserService --> UserController: 12. Return following & isFollowing
+UserService -> UserService: 7. Check decode
+activate UserService
+space
 deactivate UserService
 
-UserController --> Router: 13. HTTP response
+opt Decoide failed
+    UserService --> UserController: 7.1. Return 401 Unauthorized
+    UserController --> Router: 7.2. Return 401 Unauthorized
+    Router --> UI: 7.3. HTTP response
+    UI --> User: 7.4. Show error
+end
+
+UserService -> UserModel: 8. Find user 
+activate UserModel
+UserModel -> MongoDB: 9. Get user
+activate MongoDB
+MongoDB --> UserModel: 10. User document
+deactivate MongoDB
+UserModel --> UserService: 11. User data
+deactivate UserModel
+
+UserService -> UserService: 12. Check user
+activate UserService
+space
+deactivate UserService
+
+opt User not found
+    UserService -> UserController: 12.1. Return 401 Unauthorized
+    UserController -> Router: 12.2. Return 401 Unauthorized
+    Router -> UI: 12.3. HTTP response
+    UI -> User: 12.4. Show error
+end
+
+ref over UserService, MongoDB: 3.34.b.i. Subsequence - Following Author
+
+UserService --> UserController: 13. Return following & isFollowing
+deactivate UserService
+
+UserController --> Router: 14. HTTP response
 deactivate UserController
-Router --> UI: 14. Update follow button
+
+Router --> UI: 15. Update follow button
 deactivate Router
-UI --> User: 15. Show follow state
+
+UI --> User: 16. Show follow state
 deactivate UI
 deactivate User

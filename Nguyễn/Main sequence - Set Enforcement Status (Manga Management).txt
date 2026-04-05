@@ -1,0 +1,96 @@
+@startuml
+title Set Enforcement Status (Manga Management)
+hide footbox
+
+skinparam {
+  ActorBackgroundColor #FFFFFF
+  BoundaryBackgroundColor #FFFFFF
+  ControlBackgroundColor #FFFFFF
+  EntityBackgroundColor #FFFFFF
+  DatabaseBackgroundColor #FFFFFF
+  ActorBorderColor black
+  BoundaryBorderColor black
+  ControlBorderColor black
+  EntityBorderColor black
+  DatabaseBorderColor black
+  responseMessageBelowArrow true
+}
+
+actor "Content Moderator" as MOD
+boundary "Manga Management UI" as UI
+boundary "Router" as RT
+control "AccessTokenGuard" as ATG
+control "RolesGuard" as RG
+control "MangaController" as CT
+control "MangaService" as SV
+
+activate MOD
+activate UI
+
+alt 1. Suspend manga
+  MOD -> UI: 1.1 Choose Suspend
+else 1. Ban manga
+  MOD -> UI: 1.2 Choose Ban
+else 1. Remove restriction
+  MOD -> UI: 1.3 Choose Clear
+end
+
+alt 2. Suspend/Ban with empty reason
+  UI --> MOD: 2.1 Show validation
+else 2. Valid request
+  UI -> RT: 3. PATCH enforcement
+  activate RT
+
+  ref over RT, RG : 4. Check auth and role
+
+  alt 5. Unauthorized
+    RT --> UI: 5.1 HTTP 401
+    UI --> MOD: 5.2 Show login required
+  else 5. Permission denied
+    RT --> UI: 5.3 HTTP 403
+    UI --> MOD: 5.4 Show permission denied
+  else 5. Access granted
+    RT -> CT: 6. setEnforcementStatus()
+    activate CT
+
+    CT -> SV: 7. setEnforcementStatus(mangaId, actorId, status, reason)
+    activate SV
+
+    ref over SV, MM, DB : 8. Validate ids and find manga
+
+    alt 9. Invalid mangaId or actorId
+      SV --> CT: 9.1 BadRequest
+      CT --> RT: 9.2 HTTP 400
+      RT --> UI: 9.3 Action failed
+      UI --> MOD: 9.4 Show error
+    else 9. Manga not found
+      SV --> CT: 9.5 NotFound
+      CT --> RT: 9.6 HTTP 404
+      RT --> UI: 9.7 Action failed
+      UI --> MOD: 9.8 Show error
+    else 9. Manga found
+      alt 10. Suspend/Ban without reason
+        SV --> CT: 10.1 BadRequest
+        CT --> RT: 10.2 HTTP 400
+        RT --> UI: 10.3 Action failed
+        UI --> MOD: 10.4 Show error
+      else 10. Input valid
+        ref over SV, MM, DB : 11. Save enforcement update
+
+        SV --> CT: 12. Enforcement result
+        CT --> RT: 13. HTTP 200
+        RT --> UI: 14. Update success
+        UI --> MOD: 15. Show updated status
+      end
+    end
+
+    deactivate SV
+    deactivate CT
+  end
+
+  deactivate RT
+end
+
+deactivate UI
+deactivate MOD
+@enduml

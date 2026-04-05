@@ -1,17 +1,4 @@
-@startuml
-skinparam {
-    ActorBackgroundColor #FFFFFF
-    BoundaryBackgroundColor #FFFFFF
-    ControlBackgroundColor #FFFFFF
-    EntityBackgroundColor #FFFFFF
-    DatabaseBackgroundColor #FFFFFF
-
-    ActorBorderColor black
-    BoundaryBorderColor black
-    ControlBorderColor black
-    EntityBorderColor black
-    DatabaseBorderColor black
-}
+bottomparticipants
 
 actor User
 boundary "Chapter Comment Form (UI)" as UI
@@ -19,11 +6,8 @@ boundary Router
 control CommentController
 control CommentService
 control ChapterService
-control MangaService
 control UserService
 control NotificationService
-entity CommentModel
-entity UserModel
 database MongoDB
 
 User -> UI: 1. Write comment & submit
@@ -36,25 +20,35 @@ activate Router
 Router -> CommentController: 3. createCommentChapter()
 activate CommentController
 
+CommentController -> CommentController: 4. Check token
+activate CommentController
+space
+deactivate CommentController
+
 opt Token Invalid
-    CommentController --> Router: 3.1. 401 Unauthorized
-    Router --> UI: 3.2. Show error
-    UI --> User: 3.3. Show error
+    CommentController --> Router: 4.1. 401 Unauthorized
+    Router --> UI: 4.2. Show error
+    UI --> User: 4.3. Show error
 end
 
 CommentController -> CommentService: 5. createCommentChapter(dto, payload)
 activate CommentService
 
-ref over User, MongoDB: 6. Subsequence - Chapter commenting 1
+ref over User, MongoDB: 3.42.b.i. Subsequence - Chapter commenting 1
 
-CommentService -> ChapterService: 7. getChapterById(chapterId)
+CommentService -> ChapterService: 6. getChapterById(chapterId)
 activate ChapterService
-ChapterService -> MongoDB: 8. Find chapter
+ChapterService -> MongoDB: 7. Find chapter
 activate MongoDB
-MongoDB --> ChapterService: 9. Chapter data
+MongoDB --> ChapterService: 8. Chapter data
 deactivate MongoDB
-ChapterService --> CommentService: 10. Chapter
+ChapterService --> CommentService: 9. Chapter
 deactivate ChapterService
+
+CommentService -> CommentService: 10. Check chapter
+activate CommentService
+space
+deactivate CommentService
 
 opt Chapter not found
     CommentService --> CommentController: 10.1. Throw error
@@ -63,7 +57,12 @@ opt Chapter not found
     UI --> User: 10.4. Show error
 end
 
-ref over CommentService, MongoDB: 11. Subsequence - Chapter commenting 2
+ref over CommentService, MongoDB: 3.42.b.ii. Subsequence - Chapter commenting 2
+
+CommentService -> CommentService: 11. Check author
+activate CommentService
+space
+deactivate CommentService
 
 opt Author exists
     CommentService -> NotificationService: 11.1. createNotification(dto)
@@ -75,6 +74,7 @@ opt Author exists
     activate UserService
     UserService --> CommentService: 11.4. Remove invalid devices
     deactivate UserService
+
     CommentService --> CommentController: 11.5. Return success
     CommentController --> Router: 11.6. HTTP response
     Router --> UI: 11.7. Comment created
@@ -86,9 +86,10 @@ deactivate CommentService
 
 CommentController --> Router: 13. HTTP response
 deactivate CommentController
+
 Router --> UI: 14. Comment created
 deactivate Router
+
 UI --> User: 15. Show success
 deactivate UI
 deactivate User
-@enduml

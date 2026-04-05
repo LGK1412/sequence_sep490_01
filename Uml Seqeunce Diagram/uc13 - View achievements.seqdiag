@@ -5,7 +5,7 @@ boundary "Achievements Page" as UI
 boundary Router
 control AchievementController
 control AchievementService
-entity AchievementProgressModel
+entity ":AchievementProgressModel" as AchievementProgressModel
 database MongoDB
 
 User -> UI: 1. Open My Achievements
@@ -21,30 +21,35 @@ activate AchievementController
 AchievementController -> AchievementService: 4. getAllWithProgress(userId)
 activate AchievementService
 
-opt Invalid user
-  AchievementService --> AchievementController: 4.1. BadRequestException
-  AchievementController --> Router: 4.2. HTTP error
-  Router --> UI: 4.3. HTTP error
-  UI --> User: 4.4. Show error
-end
-
-AchievementService -> AchievementProgressModel: 5. find(userId)
-activate AchievementProgressModel
-AchievementProgressModel -> MongoDB: 6. query achievement progress
-activate MongoDB
-MongoDB --> AchievementProgressModel: 7. return data
-deactivate MongoDB
-AchievementProgressModel --> AchievementService: 8. progress list
-deactivate AchievementProgressModel
-
-AchievementService --> AchievementController: 9. return achievements 
+AchievementService -> AchievementService: 5. Check user
+activate AchievementService
+space
 deactivate AchievementService
 
-AchievementController --> Router: 10. HTTP response
+opt Invalid user
+  AchievementService --> AchievementController: 5.1. BadRequestException
+  AchievementController --> Router: 5.2. HTTP error
+  Router --> UI: 5.3. HTTP error
+  UI --> User: 5.4. Show error
+end
+
+AchievementService -> AchievementProgressModel: 6. find(userId)
+activate AchievementProgressModel
+AchievementProgressModel -> MongoDB: 7. query achievement progress
+activate MongoDB
+MongoDB --> AchievementProgressModel: 8. return data
+deactivate MongoDB
+AchievementProgressModel --> AchievementService: 9. progress list
+deactivate AchievementProgressModel
+
+AchievementService --> AchievementController: 10. return achievements 
+deactivate AchievementService
+
+AchievementController --> Router: 11. HTTP response
 deactivate AchievementController
 
-Router --> UI: 11. Response data
+Router --> UI: 12. Response data
 deactivate Router
-UI --> User: 12. Show achievements & progress
+UI --> User: 13. Show achievements & progress
 deactivate UI
 deactivate User

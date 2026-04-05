@@ -1,11 +1,10 @@
-deactivate MangaService
-
+bottomparticipants
 actor User
 boundary "Reading History" as UI
 boundary Router
 control ChapterController
 control ChapterService
-entity HistoryModel
+entity ":HistoryModel" as HistoryModel
 database MongoDB
 
 User -> UI: 1. Request last read chapter

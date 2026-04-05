@@ -7,7 +7,7 @@ control UserController
 control AccessTokenGuard
 control RolesGuard
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 Admin -> UI: 1. Load Dashboard (Users Statistics)

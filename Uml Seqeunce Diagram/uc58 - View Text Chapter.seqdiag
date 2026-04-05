@@ -5,7 +5,7 @@ boundary "View Chapter UI" as UI
 boundary Router
 control TextChapterController
 control TextChapterService
-entity TextChapterModel
+entity ":TextChapterModel" as TextChapterModel
 database MongoDB
 
 User -> UI: 1. Open chapter detail

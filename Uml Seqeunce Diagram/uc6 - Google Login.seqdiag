@@ -6,9 +6,6 @@ boundary Router
 control AuthController
 control AuthService
 control GoogleOAuth
-control UserService
-entity UserModel
-database MongoDB
 
 User -> UI: 1. Click "Login with Google"
 activate User
@@ -32,28 +29,33 @@ activate AuthService
 AuthService -> GoogleOAuth: 7. verifyIdToken(idToken)
 activate GoogleOAuth
 
-GoogleOAuth --> AuthService: 8. token payload / error
+GoogleOAuth --> AuthService: 8. token payload
 deactivate GoogleOAuth
 
+AuthService -> AuthService: 9. Check token
+activate AuthService
+space
+deactivate AuthService
+
 alt Invalid Google token
-    AuthService --> AuthController: 8.1.1 Throw UnauthorizedException
-    AuthController --> Router: 8.1.2 HTTP 401 response
-    Router --> UI: 8.1.3 Show authentication error
-    UI --> User: 8.1.4 Google login failed
+    AuthService --> AuthController: 9.1.1 Throw UnauthorizedException
+    AuthController --> Router: 9.1.2 HTTP 401 response
+    Router --> UI: 9.1.3 Show authentication error
+    UI --> User: 9.1.4 Google login failed
 else Email missing or not verified
-    AuthService --> AuthController: 8.2.1 Throw UnauthorizedException
-    AuthController --> Router: 8.2.2 HTTP 401 response
-    Router --> UI: 8.2.3 Show verification error
-    UI --> User: 8.2.4 Google email not verified
+    AuthService --> AuthController: 9.2.1 Throw UnauthorizedException
+    AuthController --> Router: 9.2.2 HTTP 401 response
+    Router --> UI: 9.2.3 Show verification error
+    UI --> User: 9.2.4 Google email not verified
 end
 
-ref over AuthService, MongoDB: 9. Subsequence - Find user for Google Login
+ref over AuthService: 3.6.b.i. Subsequence - Find user for Google Login
 
 AuthService --> AuthController: 10. Return accessToken & tokenPayload
 deactivate AuthService
 deactivate AuthService
 
-AuthController -> Router: 11. Set HTTP-only cookie (access_token)
+AuthController --> Router: 11. Set HTTP-only cookie (access_token)
 deactivate AuthController
 
 Router --> UI: 12. Login success response

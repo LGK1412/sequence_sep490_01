@@ -3,8 +3,8 @@ bottomparticipants
 title Subsequence - React rating 1
 
 control RatingLikeService
-entity RatingLikeModel
-entity RatingModel
+entity ":RatingLikeModel" as RatingLikeModel
+entity ":RatingModel" as RatingModel
 database MongoDB
 
 RatingLikeService -> RatingLikeModel: 1. deleteOne(existing like)

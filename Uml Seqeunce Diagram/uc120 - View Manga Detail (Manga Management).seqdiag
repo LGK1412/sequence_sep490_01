@@ -1,0 +1,74 @@
+bottomparticipants
+
+actor "Content Moderator" as MOD
+boundary "Manga Management UI" as UI
+boundary "Router" as RT
+control "MangaController" as CT
+control "MangaService" as SV
+entity ":MangaModel" as MM
+database "MongoDB" as DB
+
+MOD -> UI: 1. Click View
+activate MOD
+activate UI
+
+UI -> RT: 2. GET /api/manga/admin/management/{mangaId}
+activate RT
+
+ref over RT : 3.120.b.i. Subsequence - Check auth and moderator role
+
+alt Unauthorized
+  RT --> UI: 2.1.1. HTTP 401
+  UI --> MOD: 2.1.2. Show login required
+else Permission denied
+  RT --> UI: 2.2.1. HTTP 403
+  UI --> MOD: 2.2.2. Show permission denied
+end
+  RT -> CT: 3. getManagementDetail(mangaId)
+  activate CT
+
+  CT -> SV: 4. getManagementDetail(mangaId)
+  activate SV
+
+SV -> SV: 5. Check mangaId
+activate SV
+space
+deactivate SV
+
+  opt Invalid mangaId
+    SV --> CT: 5.1 BadRequest
+    CT --> RT: 5.2 HTTP 400
+    RT --> UI: 5.3 Load failed
+    UI --> MOD: 5.4 Show error
+end
+    SV -> MM: 6. findById(...).populate().lean()
+    activate MM
+    MM -> DB: 7. Query manga
+    activate DB
+    DB --> MM: 8. Manga / null
+    deactivate DB
+    MM --> SV: 9. Return manga
+    deactivate MM
+
+SV -> SV: 10. Check mangaId
+activate SV
+space
+deactivate SV
+
+    opt Manga not found
+      SV --> CT: 10.1 NotFound
+      CT --> RT: 10.2 HTTP 404
+      RT --> UI: 10.3 Detail not found
+      UI --> MOD: 10.4 Show error
+    end
+      ref over SV: 3.120.b.ii. Subsequence - Load detail metrics
+
+      SV --> CT: 11. Manga detail response
+      deactivate SV
+      CT --> RT: 12. HTTP 200
+      deactivate CT
+      RT --> UI: 13. Return detail
+      deactivate RT
+      UI --> MOD: 14. Show overview, license, enforcement
+deactivate UI
+deactivate MOD

@@ -1,0 +1,73 @@
+bottomparticipants
+
+actor "Content Moderator" as MOD
+boundary "Manga Management UI" as UI
+boundary "Router" as RT
+control "AccessTokenGuard" as ATG
+control "RolesGuard" as RG
+control "MangaController" as CT
+control "MangaService" as SV
+entity ":MangaModel" as MangaModel
+database "MongoDB" as DB
+activate MOD
+activate UI
+
+alt 1. Suspend manga
+  MOD -> UI: 1.1 Choose Suspend
+else Ban manga
+  MOD -> UI: 1.2 Choose Ban
+else Remove restriction
+  MOD -> UI: 1.3 Choose Clear
+end
+
+opt Suspend/Ban with empty reason
+  UI --> MOD: 1.4 Show validation
+end
+
+  UI -> RT: 2. PATCH enforcement
+  activate RT
+
+  ref over RT, RG : 3. Subsequence - Check auth and moderator role
+
+  alt Unauthorized
+    RT --> UI: 3.1.1 HTTP 401
+    UI --> MOD: 3.1.2 Show login required
+  else Permission denied
+    RT --> UI: 3.2.1 HTTP 403
+    UI --> MOD: 3.2.2 Show permission denied
+end
+    RT -> CT: 4. setEnforcementStatus()
+    activate CT
+
+    CT -> SV: 5. setEnforcementStatus(mangaId, actorId, status, reason)
+    activate SV
+
+    ref over SV, DB : 6. Subsequence - Validate ids and find manga
+
+    alt Invalid mangaId or actorId
+      SV --> CT: 6.1.1. BadRequest
+      CT --> RT: 6.1.2. HTTP 400
+      RT --> UI: 6.1.3. Action failed
+      UI --> MOD: 6.1.4. Show error
+    else Manga not found
+      SV --> CT: 6.2.1. NotFound
+      CT --> RT: 6.2.2. HTTP 404
+      RT --> UI: 6.2.3. Action failed
+      UI --> MOD: 6.2.4. Show error
+    else Suspend/Ban without reason
+        SV --> CT: 6.3.1. BadRequest
+        CT --> RT: 6.3.2. HTTP 400
+        RT --> UI: 6.3.3. Action failed
+        UI --> MOD: 6.3.4. Show error
+end
+        ref over SV, DB : 7. Save enforcement update
+
+        SV --> CT: 8. Enforcement result
+        deactivate SV
+        CT --> RT: 9. HTTP 200
+        deactivate CT
+        RT --> UI: 10. Update success
+        deactivate RT
+        UI --> MOD: 11. Show updated status
+deactivate UI
+deactivate MOD

@@ -1,0 +1,34 @@
+bottomparticipants
+
+title Subsequence - Query list and stats
+
+control "MangaService" as SV
+entity ":MangaModel" as MM
+database "MongoDB" as DB
+
+SV -> MM: 1. aggregate(list)
+activate SV
+activate MM
+MM -> DB: 2. Query list
+activate DB
+DB --> MM: 3. List rows
+deactivate DB
+MM --> SV: 4. Return rows
+deactivate MM
+
+SV -> MM: 5. aggregate(stats)
+activate MM
+MM -> DB: 6. Query stats
+activate DB
+DB --> MM: 7. Stats row
+deactivate DB
+MM --> SV: 8. Return stats
+deactivate MM
+
+note right of SV
+9. Normalize coverImage
+10. Map response
+end note
+
+deactivate SV
+@enduml

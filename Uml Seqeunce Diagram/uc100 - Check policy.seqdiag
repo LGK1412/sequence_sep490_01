@@ -5,11 +5,11 @@ title Subseqeunce - Add to queue for AI check policies
 control ModerationListener
 control ModerationService
 control GeminiModerator
-entity ChapterModel
-entity TextChapterModel
-entity PoliciesModel
-entity ChapterModerationModel
-entity ModerationActionModel
+entity ":ChapterModel" as ChapterModel
+entity ":TextChapterModel" as TextChapterModel
+entity ":PoliciesModel" as PoliciesModel
+entity ":ChapterModerationModel" as ChapterModerationModel
+entity ":ModerationActionModel" as ModerationActionModel
 database MongoDB
 
 ModerationListener -> ModerationService: 1. Run Ai Check

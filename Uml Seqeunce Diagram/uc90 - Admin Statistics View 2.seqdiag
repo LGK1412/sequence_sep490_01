@@ -5,7 +5,7 @@ boundary "Admin Dashboard UI" as UI
 boundary Router
 control ModerationController
 control ModerationService
-entity ChapterModerationModel
+entity ":ChapterModerationModel" as ChapterModerationModel
 database MongoDB
 
 Admin -> UI: 1. Open Dashboard (Moderation Weekly)

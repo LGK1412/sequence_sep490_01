@@ -4,7 +4,7 @@ title Subsequence - Find user for email login
 
 control AuthService
 control UserService
-entity UserModel
+entity ":UserModel" as UserModel
 database MongoDB
 
 AuthService -> UserService: 5. findByEmail(email)

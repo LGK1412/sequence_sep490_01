@@ -5,7 +5,7 @@ boundary "Profile Page" as UI
 boundary Router
 control "DonationController" as Controller
 entity "DonationService" as Service
-entity "DonationModel" as DonationModel
+entity ":DonationModel" as DonationModel
 database MongoDB
 
 User -> UI : 1. Open Profile page

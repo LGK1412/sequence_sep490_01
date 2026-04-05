@@ -5,7 +5,7 @@ boundary Router
 control AccessTokenGuard
 control UsersController
 control UsersService
-entity UsersModel
+entity ":UsersModel" as UsersModel
 database MongoDB
 
 User -> Router: 1. GET /emoji-packs-own
@@ -15,42 +15,47 @@ activate Router
 Router -> AccessTokenGuard: 2. canActivate(request)
 activate AccessTokenGuard
 
-opt Token invalid
-  AccessTokenGuard --> Router: 2.1. Deny
-  Router --> User: 2.2. 401 Unauthorized
-end
-
-AccessTokenGuard --> Router: 3. Allow
+AccessTokenGuard -> AccessTokenGuard: 3. Validate token
+activate AccessTokenGuard
+space
 deactivate AccessTokenGuard
 
-Router -> UsersController: 4. getUserEmojiPacksOwn(req)
+opt Token invalid
+  AccessTokenGuard --> Router: 3.1 Deny
+  Router --> User: 3.2 401 Unauthorized
+end
+
+AccessTokenGuard --> Router: 4. Allow
+deactivate AccessTokenGuard
+
+Router -> UsersController: 5. getUserEmojiPacksOwn(req)
 activate UsersController
 
-UsersController -> UsersController: 5. extract userId from req.user
+UsersController -> UsersController: 6. Extract userId from req.user
 activate UsersController
 space
 deactivate UsersController
 
-UsersController -> UsersService: 6. getEmojiPacksOwn(userId)
+UsersController -> UsersService: 7. getEmojiPacksOwn(userId)
 activate UsersService
 
-UsersService -> UsersModel: 7. Finde emoji pack
+UsersService -> UsersModel: 8. Find emoji packs
 activate UsersModel
 
-UsersModel -> MongoDB: 8.  Finde emoji pack
+UsersModel -> MongoDB: 9. Find emoji packs
 activate MongoDB
-MongoDB --> UsersModel: 9. Return result
+MongoDB --> UsersModel: 10. Return result
 deactivate MongoDB
 
-UsersModel --> UsersService: 10. Return result
+UsersModel --> UsersService: 11. Return result
 deactivate UsersModel
 
-UsersService --> UsersController: 11. Return result
+UsersService --> UsersController: 12. Return result
 deactivate UsersService
 
-UsersController --> Router: 12. Return result
+UsersController --> Router: 13. Return result
 deactivate UsersController
 
-Router --> User: 13. Return result
+Router --> User: 14. Return result
 deactivate Router
 deactivate User

@@ -5,7 +5,7 @@ boundary "Read Chapter UI" as UI
 boundary Router
 control ChapterController
 control ChapterService
-entity ChapterModel
+entity ":ChapterModel" as MangaModel
 database MongoDB
 
 User -> UI: 1. Open chapter detail
@@ -18,33 +18,67 @@ activate Router
 Router -> ChapterController: 3. getChapterById(id)
 activate ChapterController
 
-ChapterController -> ChapterService: 4. getChapterById(ObjectId)
-activate ChapterService
+ChapterController -> ChapterController: 4. Check token / role
+activate ChapterController
+space
+deactivate ChapterController
 
-ChapterService -> ChapterModel: 5. Get chapter
-activate ChapterModel
-ChapterModel -> MongoDB: 6. Query chapter
-activate MongoDB
-MongoDB --> ChapterModel: 7. Return chapter
-deactivate MongoDB
-ChapterModel --> ChapterService: 8. Return chapter
-deactivate ChapterModel
-
-opt Chapter not found
-    ChapterService --> ChapterController: 8.1 null
-    ChapterController --> Router: 8.2 404 Not Found
-    Router --> UI: 8.3 Show error
-    UI --> User: 8.4 Error message
+opt Token invalid / unauthorized
+    ChapterController --> Router: 4.1 401 Unauthorized
+    Router --> UI: 4.2 Show error
+    UI --> User: 4.3 Error message
 end
 
-ChapterService --> ChapterController: 9. Return chapter
+ChapterController -> ChapterService: 5. getChapterById(ObjectId)
+activate ChapterService
+
+ChapterService -> ChapterService: 6. Validate chapterId
+activate ChapterService
+space
 deactivate ChapterService
 
-ChapterController --> Router: 10. Return chapter
+opt Invalid chapterId
+    ChapterService --> ChapterController: 6.1 BadRequestException
+    ChapterController --> Router: 6.2 400 Bad Request
+    Router --> UI: 6.3 Show error
+    UI --> User: 6.4 Error message
+end
+
+ChapterService -> ChapterService: 7. Fetch chapter query preparation
+activate ChapterService
+space
+deactivate ChapterService
+
+ChapterService -> ChapterModel: 8. Get chapter
+activate ChapterModel
+ChapterModel -> MongoDB: 9. Query chapter
+activate MongoDB
+MongoDB --> ChapterModel: 10. Return chapter / null
+deactivate MongoDB
+ChapterModel --> ChapterService: 11. Return chapter
+deactivate ChapterModel
+
+ChapterService -> ChapterService: 12. Check chapter existence
+activate ChapterService
+space
+deactivate ChapterService
+
+opt Chapter not found
+    ChapterService --> ChapterController: 12.1 null
+    ChapterController --> Router: 12.2 404 Not Found
+    Router --> UI: 12.3 Show error
+    UI --> User: 12.4 Error message
+end
+
+ChapterService --> ChapterController: 13. Return chapter
+deactivate ChapterService
+
+ChapterController --> Router: 14. Return chapter
 deactivate ChapterController
-Router --> UI: 11. Return chapter
+
+Router --> UI: 15. Render chapter
 deactivate Router
-UI --> User: 12. View chapter
+
+UI --> User: 16. View chapter
 deactivate UI
 deactivate User
-@enduml

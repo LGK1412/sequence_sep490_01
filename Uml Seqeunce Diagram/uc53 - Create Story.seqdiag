@@ -1,17 +1,4 @@
-@startuml
-skinparam {
-    ActorBackgroundColor #FFFFFF
-    BoundaryBackgroundColor #FFFFFF
-    ControlBackgroundColor #FFFFFF
-    EntityBackgroundColor #FFFFFF
-    DatabaseBackgroundColor #FFFFFF
-
-    ActorBorderColor black
-    BoundaryBorderColor black
-    ControlBorderColor black
-    EntityBorderColor black
-    DatabaseBorderColor black
-}
+bottomparticipants
 
 actor Author
 boundary "Create Manga UI" as UI
@@ -20,8 +7,7 @@ control MangaController
 control MangaService
 control StylesService
 control GenreService
-control EventEmitter
-entity MangaModel
+entity ":MangaModel" as MangaModel
 database MongoDB
 
 Author -> UI: 1. Submit create manga form
@@ -31,90 +17,136 @@ activate UI
 UI -> Router: 2. POST /author/{authorId}
 activate Router
 
-alt Token
-    MangaController --> Router: 2.1.1. 401 Unauthorized
-    Router --> UI: 2.1.2. Show error
-    UI --> Author: 2.1.3. Error message
-else Role Invalid
-    MangaController --> Router: 2.2.1. 403 Forbidden
-    Router --> UI: 2.2.2. Show error
-    UI --> Author: 2.2.3. Error message
-end
-
 Router -> MangaController: 3. createManga(dto, file, req, authorId)
 activate MangaController
 
-opt No permission
-    MangaController --> Router: 3.1. 401 Unauthorized
-    Router --> UI: 3.2. Show error
-    UI --> Author: 3.3 Error message
+MangaController -> MangaController: 4. Check token / role
+activate MangaController
+space
+deactivate MangaController
+
+alt Token invalid
+    MangaController --> Router: 4.1.1 401 Unauthorized
+    Router --> UI: 4.1.2 Show error
+    UI --> Author: 4.1.3 Error message
+else Role invalid
+    MangaController --> Router: 4.2.1 403 Forbidden
+    Router --> UI: 4.2.2 Show error
+    UI --> Author: 4.2.3 Error message
 end
 
-MangaController -> MangaService: 4. createManga(dto, authorId)
+MangaController -> MangaController: 5. Check permission (authorId vs req.user)
+activate MangaController
+space
+deactivate MangaController
+
+opt No permission
+    MangaController --> Router: 5.1 401 Unauthorized
+    Router --> UI: 5.2 Show error
+    UI --> Author: 5.3 Error message
+end
+
+MangaController -> MangaService: 6. createManga(dto, authorId)
 activate MangaService
 
-opt Validate styles
-    MangaService -> StylesService: 4.1. findById(styleId)
-    activate StylesService
-    StylesService --> MangaService: 4.2. style / null
-    deactivate StylesService
-
-    alt Style not exist or hidden
-        MangaService --> MangaController: 4.2.1. BadRequestException
-        MangaController --> Router: 4.2.2. Error response
-        Router --> UI: 4.2.3. Show error
-        UI --> Author: 4.2.4. Error message
-    else Style is hidden
-        MangaService --> MangaController: 4.2.5. BadRequestException
-        MangaController --> Router: 4.2.6. Error response
-        Router --> UI: 4.2.7. Show error
-        UI --> Author: 4.2.8. Error message
-    end
-end
-
-opt Validate genres
-    MangaService -> GenreService: 4.3. getGenreById(genreId)
-    activate GenreService
-    GenreService --> MangaService: 4.4. genre / null
-    deactivate GenreService
-
-    alt Genre not exist
-        MangaService --> MangaController: 4.4.1. BadRequestException
-        MangaController --> Router: 4.4.2. Error response
-        Router --> UI: 4.4.3. Show error
-        UI --> Author: 4.4.4. Error message
-    else Genre is hidden
-        MangaService --> MangaController: 4.4.5. BadRequestException
-        MangaController --> Router: 4.4.6. Error response
-        Router --> UI: 4.4.7. Show error
-        UI --> Author: 4.4.8. Error message
-    end
-end
-
-MangaService -> MangaModel: 5. create new manga
-activate MangaModel
-MangaModel -> MongoDB: 6. insert manga
-activate MongoDB
-MongoDB --> MangaModel: 7. saved manga
-deactivate MongoDB
-MangaModel --> MangaService: 8. manga
-deactivate MangaModel
-
-MangaService --> MangaController: 10. created manga
+MangaService -> MangaService: 7. Check styles valid
+activate MangaService
+space
 deactivate MangaService
 
+opt Validate styles
+    MangaService -> StylesService: 7.1 findById(styleId)
+    activate StylesService
+    StylesService --> MangaService: 7.2 style / null
+    deactivate StylesService
+
+    MangaService -> MangaService: 7.3 Check style existence / visibility
+    activate MangaService
+    space
+    deactivate MangaService
+
+    alt Style not exist
+        MangaService --> MangaController: 7.3.1 BadRequestException
+        MangaController --> Router: 7.3.2 Error response
+        Router --> UI: 7.3.3 Show error
+        UI --> Author: 7.3.4 Error message
+    else Style is hidden
+        MangaService --> MangaController: 7.3.5 BadRequestException
+        MangaController --> Router: 7.3.6 Error response
+        Router --> UI: 7.3.7 Show error
+        UI --> Author: 7.3.8 Error message
+    end
+end
+
+MangaService -> MangaService: 8. Check genres valid
+activate MangaService
+space
+deactivate MangaService
+
+opt Validate genres
+    MangaService -> GenreService: 8.1 getGenreById(genreId)
+    activate GenreService
+    GenreService --> MangaService: 8.2 genre / null
+    deactivate GenreService
+
+    MangaService -> MangaService: 8.3 Check genre existence / visibility
+    activate MangaService
+    space
+    deactivate MangaService
+
+    alt Genre not exist
+        MangaService --> MangaController: 8.3.1 BadRequestException
+        MangaController --> Router: 8.3.2 Error response
+        Router --> UI: 8.3.3 Show error
+        UI --> Author: 8.3.4 Error message
+    else Genre is hidden
+        MangaService --> MangaController: 8.3.5 BadRequestException
+        MangaController --> Router: 8.3.6 Error response
+        Router --> UI: 8.3.7 Show error
+        UI --> Author: 8.3.8 Error message
+    end
+end
+
+MangaService -> MangaModel: 9. create new manga
+activate MangaModel
+MangaModel -> MongoDB: 10. insert manga
+activate MongoDB
+MongoDB --> MangaModel: 11. saved manga
+deactivate MongoDB
+MangaModel --> MangaService: 12. manga
+deactivate MangaModel
+
+MangaService -> MangaService: 13. Check create success
+activate MangaService
+space
+deactivate MangaService
+
+opt Create failed
+    MangaService --> MangaController: 13.1 InternalServerErrorException
+    MangaController --> Router: 13.2 Error response
+    Router --> UI: 13.3 Show error
+    UI --> Author: 13.4 Error message
+end
+
+MangaService --> MangaController: 14. created manga
+deactivate MangaService
+
+MangaController -> MangaController: 15. Check has cover file
+activate MangaController
+space
+deactivate MangaController
+
 opt Save manga cover
-    MangaController -> MangaController: 10.1. save manga cover iamge
+    MangaController -> MangaController: 15.1 save manga cover image
     activate MangaController
     space
     deactivate MangaController
 end
 
-MangaController --> Router: 11. HTTP response
+MangaController --> Router: 16. HTTP response
 deactivate MangaController
-Router --> UI: 12. Show created manga
+Router --> UI: 17. Show created manga
 deactivate Router
-UI --> Author: 13. Manga created successfully
+UI --> Author: 18. Manga created successfully
 deactivate UI
 deactivate Author
-@enduml

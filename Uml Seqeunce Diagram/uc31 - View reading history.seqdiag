@@ -5,7 +5,7 @@ boundary "Reading History Page (UI)" as UI
 boundary Router
 control ChapterController
 control ChapterService
-entity HistoryModel
+entity ":HistoryModel" as HistoryModel
 database MongoDB
 
 User -> UI: 1. Open reading history

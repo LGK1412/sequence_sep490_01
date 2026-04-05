@@ -5,11 +5,8 @@ boundary "Login Page" as UI
 boundary Router
 control AuthController
 control AuthService
-control UserService
-entity UserModel
 boundary HashUtil
 boundary JwtService
-database MongoDB
 
 User -> UI: 1. Enter email & password\nClick Login
 activate User
@@ -24,9 +21,14 @@ activate AuthController
 AuthController -> AuthService: 4. login(loginDto)
 activate AuthService
 
-ref over AuthService, MongoDB: 5. Subsequence - Find user for email login
+ref over AuthService: 3.5.b.i. Subsequence - Find user for email login
 
-loop User not found / Account not verified / Account banned / Google account detected
+AuthService -> AuthService: 5. Check user
+activate AuthService
+space
+deactivate AuthService
+
+opt Invalid user
     AuthService --> AuthController: 5.1. Throw BadRequestException
     AuthController --> Router: 5.2. HTTP 400 response
     Router --> UI: 5.3. Show error
@@ -39,27 +41,27 @@ HashUtil --> AuthService: 7. Result
 deactivate HashUtil
 
 opt Password mismatch
-    AuthService --> AuthController: 8.1. Throw BadRequestException
-    AuthController --> Router: 8.2. HTTP 400 response
-    Router --> UI: 8.3. Show error
-    UI --> User: 8.4. Invalid credentials
+    AuthService --> AuthController: 7.1. Throw BadRequestException
+    AuthController --> Router: 7.2. HTTP 400 response
+    Router --> UI: 7.3. Show error
+    UI --> User: 7.4. Invalid credentials
 end
 
-AuthService -> JwtService: 9. Generate JWT access token
+AuthService -> JwtService: 8. Generate JWT access token
 activate JwtService
-JwtService --> AuthService: 10. Result
+JwtService --> AuthService: 9. Result
 deactivate JwtService
 
-AuthService --> AuthController: 11. Return token & payload
+AuthService --> AuthController: 10. Return token & payload
 deactivate AuthService
 
-AuthController --> Router: 12. Set-Cookie
+AuthController --> Router: 11. Set-Cookie
 deactivate AuthController
 
-Router --> UI: 13. Login success 
+Router --> UI: 12. Login success 
 deactivate Router
 
-UI --> User: 14. Redirect to home page
+UI --> User: 13. Redirect to home page
 deactivate UI
 deactivate User
 @enduml

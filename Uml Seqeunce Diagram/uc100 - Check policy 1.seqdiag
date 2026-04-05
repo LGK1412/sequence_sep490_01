@@ -4,9 +4,9 @@ title Subseqeunce - AI check policies
 
 control ModerationListener
 control ModerationService
-entity ChapterModel
-entity ChapterModerationModel
-entity ModerationActionModel
+entity ":ChapterModel" as ChapterModel
+entity ":ChapterModerationModel" as ChapterModerationModel
+entity ":ModerationActionModel" as ModerationActionModel
 database MongoDB
 
 activate ModerationListener

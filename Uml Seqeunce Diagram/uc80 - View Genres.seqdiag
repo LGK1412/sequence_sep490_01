@@ -5,8 +5,8 @@ boundary "Genre Management UI" as UI
 boundary Router
 control GenreController
 control GenreService
-entity GenreModel
-entity MangaModel
+entity ":GenreModel" as GenreModel
+entity ":MangaModel" as MangaModel
 database MongoDB
 
 Admin -> UI: 1. Open Genre Management page
@@ -21,51 +21,58 @@ deactivate UI
 UI -> Router: 3. GET /genre
 activate Router
 
+Router -> Router: 4. Check token / role
+activate Router
+space
+deactivate Router
+
 alt Token invalid
-    Router --> UI: 3.1.1. 401 Unauthorized
-    UI --> Admin: 3.1.2. Show error message
+    Router --> UI: 4.1.1 401 Unauthorized
+    UI --> Admin: 4.1.2 Show error message
 else Role invalid
-    Router --> UI: 3.2.1. 403 Forbidden
-    UI --> Admin: 3.2.2. Show error message
+    Router --> UI: 4.2.1 403 Forbidden
+    UI --> Admin: 4.2.2 Show error message
 end
-    Router -> GenreController: 4. getAllGenres()
-    activate GenreController
 
-    GenreController -> GenreService: 5. getAllGenres()
-    activate GenreService
+Router -> GenreController: 5. getAllGenres()
+activate GenreController
 
-    GenreService -> GenreModel: 6. find().sort({name:1})
-    activate GenreModel
-    GenreModel -> MongoDB: 7. query genres
-    activate MongoDB
-    MongoDB --> GenreModel: 8. genres[]
-    deactivate MongoDB
-    GenreModel --> GenreService: 9. genres[]
-    deactivate GenreModel
+GenreController -> GenreService: 6. getAllGenres()
+activate GenreService
 
-    GenreService -> MangaModel: 10. aggregate(unwind + group count)
-    activate MangaModel
-    MangaModel -> MongoDB: 11. run aggregate
-    activate MongoDB
-    MongoDB --> MangaModel: 12. counts[]
-    deactivate MongoDB
-    MangaModel --> GenreService: 13. counts[]
-    deactivate MangaModel
+GenreService -> GenreModel: 7. find().sort({name:1})
+activate GenreModel
+GenreModel -> MongoDB: 8. query genres
+activate MongoDB
+MongoDB --> GenreModel: 9. genres[]
+deactivate MongoDB
+GenreModel --> GenreService: 10. genres[]
+deactivate GenreModel
 
-    GenreService -> GenreService: 14. Merge counts, genres
-    activate GenreService
-    space
-    deactivate GenreService
-    
-    GenreService --> GenreController: 15. genresWithStoriesCount[]
-    deactivate GenreService
+GenreService -> MangaModel: 11. aggregate(unwind + group count)
+activate MangaModel
+MangaModel -> MongoDB: 12. run aggregate
+activate MongoDB
+MongoDB --> MangaModel: 13. counts[]
+deactivate MongoDB
+MangaModel --> GenreService: 14. counts[]
+deactivate MangaModel
 
-    GenreController --> Router: 16. HTTP 200 response
-    deactivate GenreController
-    Router --> UI: 17. Return genres list
-    deactivate Router
+GenreService -> GenreService: 15. Merge counts, genres
+activate GenreService
+space
+deactivate GenreService
 
-    UI --> Admin: 18. Display genres with storiesCount
+GenreService --> GenreController: 16. genresWithStoriesCount[]
+deactivate GenreService
+
+GenreController --> Router: 17. HTTP 200 response
+deactivate GenreController
+
+Router --> UI: 18. Return genres list
+deactivate Router
+
+UI --> Admin: 19. Display genres with storiesCount
 
 deactivate UI
 deactivate Admin

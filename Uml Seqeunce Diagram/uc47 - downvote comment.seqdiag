@@ -4,7 +4,6 @@ boundary "Comment Section (UI)" as UI
 boundary Router
 control CommentController
 control CommentService
-entity VoteCommentModel
 database MongoDB
 
 User -> UI: 1. Click Downvote
@@ -17,25 +16,30 @@ activate Router
 Router -> CommentController: 3. downVote(comment_id, req)
 activate CommentController
 
+CommentController -> CommentController: 4. Check token / role
+activate CommentController
+space
+deactivate CommentController
+
 loop Token / Role Invalid
-    CommentController --> Router: 3.1 401 / 403 Error
-    Router --> UI: 3.2 Show error
-    UI --> User: 3.3 Error message
+    CommentController --> Router: 4.1 401 / 403 Error
+    Router --> UI: 4.2 Show error
+    UI --> User: 4.3 Error message
 end
 
-CommentController -> CommentService: 4. downVote(comment_id, payload)
+CommentController -> CommentService: 5. downVote(comment_id, payload)
 activate CommentService
 
-CommentService -> CommentService: 5. checkUser(payload)
+CommentService -> CommentService: 6. checkUser(payload)
 activate CommentService
 space
 deactivate CommentService
 
-alt User not exist / User is banned
-    CommentService --> CommentController: 5.1 Error
-    CommentController --> Router: 5.2 400 Error
-    Router --> UI: 5.3 Show error
-    UI --> User: 5.4 Error message
+loop User not exist / User is banned
+    CommentService --> CommentController: 6.1 Error
+    CommentController --> Router: 6.2 400 Error
+    Router --> UI: 6.3 Show error
+    UI --> User: 6.4 Error message
 end
 
-ref over User, MongoDB: 6. Subsequence - Vote comment 1
+ref over User, MongoDB: 3.47.b.i. Subsequence - Vote comment 1

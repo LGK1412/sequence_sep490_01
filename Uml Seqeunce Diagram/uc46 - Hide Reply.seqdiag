@@ -5,7 +5,7 @@ boundary "Admin UI" as UI
 boundary Router
 control ReplyController
 control ReplyService
-entity ReplyModel
+entity ":ReplyModel" as ReplyModel
 control AuditService
 database MongoDB
 
@@ -31,43 +31,47 @@ deactivate MongoDB
 ReplyModel --> ReplyService: 8. result
 deactivate ReplyModel
 
-opt Reply not found
-    ReplyService --> ReplyController: 8.1 Throw BadRequestException
-    ReplyController --> Router: 8.2 HTTP 400
-    Router --> UI: 8.3 Error response
-    UI --> Staff: 8.4 Reply does not exist
-end
-
-ReplyService -> ReplyService: 9. Toggle is_delete flag
+ReplyService -> ReplyService: 9. Check reply exists
 activate ReplyService
 space
 deactivate ReplyService
 
-ReplyService -> ReplyModel: 10. save()
+opt Reply not found
+    ReplyService --> ReplyController: 9.1 Throw BadRequestException
+    ReplyController --> Router: 9.2 HTTP 400
+    Router --> UI: 9.3 Error response
+    UI --> Staff: 9.4 Reply does not exist
+end
+
+ReplyService -> ReplyService: 10. Toggle is_delete flag
+activate ReplyService
+space
+deactivate ReplyService
+
+ReplyService -> ReplyModel: 11. save()
 activate ReplyModel
-ReplyModel -> MongoDB: 11. update reply
+ReplyModel -> MongoDB: 12. update reply
 activate MongoDB
-MongoDB --> ReplyModel: 12. saved
+MongoDB --> ReplyModel: 13. saved
 deactivate MongoDB
-ReplyModel --> ReplyService: 13. done
+ReplyModel --> ReplyService: 14. done
 deactivate ReplyModel
 
-ReplyService -> AuditService: 14. createLog(auditData)
+ReplyService -> AuditService: 15. createLog(auditData)
 activate AuditService
-AuditService -> MongoDB: 15. insert audit log
+AuditService -> MongoDB: 16. insert audit log
 activate MongoDB
-MongoDB --> AuditService: 16. saved
+MongoDB --> AuditService: 17. saved
 deactivate MongoDB
-AuditService --> ReplyService: 17. done
+AuditService --> ReplyService: 18. done
 deactivate AuditService
 
-ReplyService --> ReplyController: 18. success result
+ReplyService --> ReplyController: 19. success result
 deactivate ReplyService
-ReplyController --> Router: 19. HTTP 200 + message
+ReplyController --> Router: 20. HTTP 200 + message
 deactivate ReplyController
-Router --> UI: 20. Success response
+Router --> UI: 21. Success response
 deactivate Router
-UI --> Staff: 21. Show result message
+UI --> Staff: 22. Show result message
 deactivate UI
 deactivate Staff
-@enduml

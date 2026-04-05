@@ -1,0 +1,31 @@
+bottomparticipants
+
+title Upload new emojis
+
+control EmojiPackController
+control EmojiService
+entity ":EmojiModel" as EmojiModel
+entity ":FileSystem" as FileSystem
+database MongoDB
+
+EmojiPackController -> EmojiService: 1. uploadEmojis(files)
+  activate EmojiService
+     activate EmojiPackController
+
+  EmojiService -> FileSystem: 2. mkdir + writeFile
+  activate FileSystem
+  FileSystem --> EmojiService: 3. files saved
+  deactivate FileSystem
+
+  EmojiService -> EmojiModel: 4. save emoji
+  activate EmojiModel
+  EmojiModel -> MongoDB: 5. insert
+  activate MongoDB
+  MongoDB --> EmojiModel: 6. saved emoji
+  deactivate MongoDB
+  EmojiModel --> EmojiService: 7. emoji
+  deactivate EmojiModel
+
+  EmojiService --> EmojiPackController: 8. updatedNewEmoji[]
+  deactivate EmojiService
+    deactivate EmojiPackController

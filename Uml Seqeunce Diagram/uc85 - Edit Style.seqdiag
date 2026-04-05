@@ -7,7 +7,7 @@ control StylesController
 control AccessTokenGuard
 control RolesGuard
 control StylesService
-entity StylesModel
+entity ":StylesModel" as StylesModel
 database MongoDB
 
 Admin -> UI: 1. Click Edit (pencil) + submit update form
@@ -60,18 +60,24 @@ deactivate MongoDB
 StylesModel --> StylesService: 13. Updated style
 deactivate StylesModel
 
+StylesService -> StylesService: 14. Check style
+activate StylesService
+space
+deactivate StylesService
+
 opt Not found
-    StylesService --> StylesController: 13.1. null
-    StylesController --> Router: 13.2. HTTP 200 (null) or 404
-    Router --> UI: 13.3. Update failed
-    UI --> Admin: 13.4. Show error message
+    StylesService --> StylesController: 14.1. null
+    StylesController --> Router: 14.2. HTTP 200 (null) or 404
+    Router --> UI: 14.3. Update failed
+    UI --> Admin: 14.4. Show error message
 end
 
-StylesService --> StylesController: 14. Updated style
+
+StylesService --> StylesController: 15. Updated style
 deactivate StylesService
-StylesController --> Router: 15. HTTP 200 response
+StylesController --> Router: 16. HTTP 200 response
 deactivate StylesController
-Router --> UI: 16. Return updated style
+Router --> UI: 17. Return updated style
 deactivate Router
 UI --> Admin: 18. Update success
 deactivate UI

@@ -5,12 +5,12 @@ boundary "ReportsPage / ReportDetail UI" as UI
 boundary Router
 control ReportsController
 control ReportsService
-entity ReportsModel
-entity UsersModel
-entity MangaModel
-entity ChaptersModel
-entity CommentsModel
-entity RepliesModel
+entity ":ReportsModel" as ReportsModel
+entity ":UsersModel" as UsersModel
+entity ":MangaModel" as MangaModel
+entity ":ChaptersModel" as ChaptersModel
+entity ":CommentsModel" as CommentsModel
+entity ":RepliesModel" as RepliesModel
 database MongoDB
 
 Staff -> UI: 1. Click "View" on report row
@@ -40,107 +40,112 @@ deactivate MongoDB
 ReportsModel --> ReportsService: 9. reportDoc
 deactivate ReportsModel
 
+ReportsService -> ReportsService: 10. Check type
+activate ReportsService
+space
+deactivate ReportsService
+
 alt target_type == Manga
-  ReportsService -> MangaModel: 9.1. findById(target_id)
+  ReportsService -> MangaModel: 10.1.1. findById(target_id)
   activate MangaModel
-  MangaModel -> MongoDB: 9.2. query manga
+  MangaModel -> MongoDB: 10.1.2. query manga
   activate MongoDB
-  MongoDB --> MangaModel: 9.3. manga
+  MongoDB --> MangaModel: 10.1.3. manga
   deactivate MongoDB
-  MangaModel --> ReportsService: 9.4. manga
+  MangaModel --> ReportsService: 10.1.4. manga
   deactivate MangaModel
 
-  ReportsService -> UsersModel: 9.5. findById(manga.authorId)
+  ReportsService -> UsersModel: 10.2.1. findById(manga.authorId)
   activate UsersModel
-  UsersModel -> MongoDB: 9.6. query author
+  UsersModel -> MongoDB: 10.2.2. query author
   activate MongoDB
-  MongoDB --> UsersModel: 9.7. author
+  MongoDB --> UsersModel: 10.2.3. author
   deactivate MongoDB
-  UsersModel --> ReportsService: 9.8. author
+  UsersModel --> ReportsService: 10.2.4. author
   deactivate UsersModel
 
 else target_type == Chapter
-  ReportsService -> ChaptersModel: 9.9. findById(target_id)
+  ReportsService -> ChaptersModel: 10.3.1. findById(target_id)
   activate ChaptersModel
-  ChaptersModel -> MongoDB: 9.10. query chapter
+  ChaptersModel -> MongoDB: 10.3.2. query chapter
   activate MongoDB
-  MongoDB --> ChaptersModel: 9.11. chapter
+  MongoDB --> ChaptersModel: 10.3.3. chapter
   deactivate MongoDB
-  ChaptersModel --> ReportsService: 9.12. chapter
+  ChaptersModel --> ReportsService: 10.3.4. chapter
   deactivate ChaptersModel
 
-  ReportsService -> MangaModel: 9.13. findById(chapter.manga_id)
+  ReportsService -> MangaModel: 10.3.5. findById(chapter.manga_id)
   activate MangaModel
-  MangaModel -> MongoDB: 9.14. query manga
+  MangaModel -> MongoDB: 10.3.6. query manga
   activate MongoDB
-  MongoDB --> MangaModel: 9.15. manga
+  MongoDB --> MangaModel: 10.3.7. manga
   deactivate MongoDB
-  MangaModel --> ReportsService: 9.16. manga
+  MangaModel --> ReportsService: 10.3.8. manga
   deactivate MangaModel
 
-  ReportsService -> UsersModel: 9.17. findById(manga.authorId)
+  ReportsService -> UsersModel: 10.3.9. findById(manga.authorId)
   activate UsersModel
-  UsersModel -> MongoDB: 9.18. query author
+  UsersModel -> MongoDB: 10.3.10. query author
   activate MongoDB
-  MongoDB --> UsersModel: 9.19. author
+  MongoDB --> UsersModel: 10.3.11. author
   deactivate MongoDB
-  UsersModel --> ReportsService: 9.20. author
+  UsersModel --> ReportsService: 10.3.12. author
   deactivate UsersModel
 
 else target_type == Comment
-  ReportsService -> CommentsModel: 9.21. findById(target_id)
+  ReportsService -> CommentsModel: 10.4.1. findById(target_id)
   activate CommentsModel
-  CommentsModel -> MongoDB: 9.22. query comment
+  CommentsModel -> MongoDB: 10.4.2. query comment
   activate MongoDB
-  MongoDB --> CommentsModel: 9.23. comment
+  MongoDB --> CommentsModel: 10.4.3. comment
   deactivate MongoDB
-  CommentsModel --> ReportsService: 9.24. comment
+  CommentsModel --> ReportsService: 10.4.4. comment
   deactivate CommentsModel
 
-  ReportsService -> UsersModel: 9.25. findById(comment.user_id)
+  ReportsService -> UsersModel: 10.4.5. findById(comment.user_id)
   activate UsersModel
-  UsersModel -> MongoDB: 9.26. query user
+  UsersModel -> MongoDB: 10.4.6. query user
   activate MongoDB
-  MongoDB --> UsersModel: 9.27. user
+  MongoDB --> UsersModel: 10.4.7. user
   deactivate MongoDB
-  UsersModel --> ReportsService: 9.28. user
+  UsersModel --> ReportsService: 10.4.8. user
   deactivate UsersModel
 
 else target_type == Reply
-  ReportsService -> RepliesModel: 9.29. findById(target_id)
+  ReportsService -> RepliesModel: 10.5.1. findById(target_id)
   activate RepliesModel
-  RepliesModel -> MongoDB: 9.30. query reply
+  RepliesModel -> MongoDB: 10.5.2. query reply
   activate MongoDB
-  MongoDB --> RepliesModel: 9.31. reply
+  MongoDB --> RepliesModel: 10.5.3. reply
   deactivate MongoDB
-  RepliesModel --> ReportsService: 9.32. reply
+  RepliesModel --> ReportsService: 10.5.4. reply
   deactivate RepliesModel
 
-  ReportsService -> UsersModel: 9.33. findById(reply.user_id)
+  ReportsService -> UsersModel: 10.5.5. findById(reply.user_id)
   activate UsersModel
-  UsersModel -> MongoDB: 9.34. query user
+  UsersModel -> MongoDB: 10.5.6. query user
   activate MongoDB
-  MongoDB --> UsersModel: 9.35. user
+  MongoDB --> UsersModel: 10.5.7. user
   deactivate MongoDB
-  UsersModel --> ReportsService: 9.36. user
+  UsersModel --> ReportsService: 10.5.8. user
   deactivate UsersModel
 end
 
-ReportsService --> ReportsController: 10. reportDetail
+ReportsService --> ReportsController: 11. reportDetail
 deactivate ReportsService
 
-ReportsController --> Router: 11. 200 OK + reportDetail
+ReportsController --> Router: 12. 200 OK + reportDetail
 deactivate ReportsController
 
-Router --> UI: 12. reportDetail
+Router --> UI: 13. reportDetail
 deactivate Router
 
-UI -> UI: 13. setSelectedReport(reportDetail)
+UI -> UI: 14. setSelectedReport(reportDetail)
 activate UI
 space
 deactivate UI
 
-UI --> Staff: 14. Show result
+UI --> Staff: 15. Show result
 deactivate UI
 deactivate Staff
 
