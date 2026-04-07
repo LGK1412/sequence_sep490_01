@@ -1,0 +1,93 @@
+@startuml
+
+control "Router" as Router
+control "Python OCR Service" as Python
+control "Ollama Vision (qwen2.5vl:7b)" as Ollama
+
+Router -> Python: 1. Send image + client_w=900
+activate Router
+activate Python
+
+Python -> Python: 2. Decode image (OpenCV)
+activate Python
+space
+deactivate Python
+
+Python -> Python: 3. Resize to width=900 (keep ratio)
+activate Python
+space
+deactivate Python
+
+Python -> Ollama: 4. Send image + prompt
+activate Ollama
+
+opt Ollama error / timeout
+    Ollama --> Python: 4.1. No response
+    Python --> Router: 4.2. Return error
+    Router --> Router: 4.3. Handle error
+end
+
+Ollama --> Python: 5. Raw JSON response
+deactivate Ollama
+
+Python -> Python: 6. Extract JSON (clean response)
+activate Python
+space
+deactivate Python
+
+Python -> Python: 7. Parse bbox + text
+activate Python
+space
+deactivate Python
+
+Python --> Router: 8. Return bubbles {x,y,w,h,text}
+deactivate Python
+
+Router -> Python: 9. Send image + coords + client_w=900
+activate Python
+
+Python -> Python: 10. Decode image
+activate Python
+space
+deactivate Python
+
+Python -> Python: 11. Compute scale ratio
+activate Python
+space
+deactivate Python
+
+Python -> Python: 12. Convert coords
+activate Python
+space
+deactivate Python
+
+Python -> Python: 13. Crop region
+activate Python
+space
+deactivate Python
+
+opt Invalid crop
+    Python --> Router: 13.1. Return error
+end
+
+Python -> Ollama: 14. Send cropped image + prompt
+activate Ollama
+
+opt Ollama error / timeout
+    Ollama --> Python: 14.1. No response
+    Python --> Router: 14.2. Return error
+end
+
+Ollama --> Python: 15. Extracted text
+deactivate Ollama
+
+Python -> Python: 16. Trim text
+activate Python
+space
+deactivate Python
+
+Python --> Router: 17. Return {text}
+deactivate Python
+deactivate Router
+
+@enduml

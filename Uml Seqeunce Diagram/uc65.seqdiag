@@ -1,0 +1,152 @@
+bottomparticipants
+
+actor Author
+boundary "Manga OCR UI" as UI
+control "Router" as Router
+control "get-translation" as GetTrans
+control "fast-translation" as FastTrans
+control "save-translation" as SaveTrans
+control "Python OCR Service" as Python
+
+Author -> UI: 1. Open Manga OCR
+activate Author
+activate UI
+
+UI -> Router: 2. Load saved data
+activate Router
+
+Router -> GetTrans: 3. POST /get-translation
+activate GetTrans
+
+GetTrans --> Router: 4. Return saved bubbles
+deactivate GetTrans
+
+Router --> UI: 5. Display bubbles
+deactivate Router
+UI --> Author: 6. Show bubbles on image
+
+Author -> UI: 7. Click Auto Detect
+
+opt Image not loaded
+    UI --> Author: 7.1. Alert "Image not loaded"
+end
+
+UI -> Router: 8. Send image to scan
+activate Router
+
+Router -> Python: 9. POST /detect
+activate Python
+
+opt Python error
+    Python --> Router: 9.1. Failed
+    Router --> UI: 9.2. Error response
+    UI --> Author: 9.3. Alert error
+end
+
+ref over Router: 65.b.i. Subsequence - OCR detect + extract text
+
+Python --> Router: 10. Return bubbles
+deactivate Python
+
+Router --> UI: 11. Display bubbles
+deactivate Router
+UI --> Author: 12. Show detected text
+
+opt Draw manually
+    Author -> UI: 12.1. Draw box
+    UI -> Router: 12.2. Send crop
+    activate Router
+    Router -> Python: 12.3. POST /ocr
+    activate Python
+    Python --> Router: 12.4. Extracted text
+    deactivate Python
+    Router --> UI: 12.5. Add bubble
+    deactivate Router
+    UI --> Author: 12.6. Add bubble
+end
+
+UI -> UI: 13. Check bubble
+activate UI
+space
+deactivate UI
+
+opt Delete bubble
+    Author -> UI: 13.1. Remove bubble
+    UI --> Author: 13.2. Updated UI
+end
+
+UI -> UI: 14. Check bubble
+activate UI
+space
+deactivate UI
+
+opt Rescan bubble
+    Author -> UI: 14.1. Click rescan
+    UI -> Router: 14.2. Send area
+    activate Router
+    Router -> Python: 14.3. POST /ocr
+    activate Python
+    Python --> Router: 14.4. Updated text
+    deactivate Python
+    Router --> UI: 14.5. Update text
+    deactivate Router
+    UI --> Author: 14.6. show updated text
+end
+
+opt Edit text
+    Author -> UI: 14.6. Edit manually
+end
+
+Author -> UI: 15. Open translation tab
+Author -> UI: 16. Select language
+Author -> UI: 17. Click translate all
+
+loop Each bubble
+    UI -> Router: 17.1. Send text
+    activate Router
+
+    Router -> FastTrans: 17.2. POST /fast-translation
+    activate FastTrans
+
+    opt Translation error
+        FastTrans --> Router: 17.2.1. Failed
+        Router --> UI: 17.2.2. Skip bubble
+    end
+
+    FastTrans --> Router: 17.3. Translated text
+    deactivate FastTrans
+
+    Router --> UI: 17.8. Update translation
+    deactivate Router
+end
+
+UI --> Author: 18. Show all translations
+
+opt Edit translation
+    Author -> UI: 18.1. Edit translation
+end
+
+Author -> UI: 19. Click Save
+
+UI -> Router: 20. Send data
+activate Router
+
+Router -> SaveTrans: 21. POST /save-translation
+activate SaveTrans
+
+opt Save error
+    SaveTrans --> Router: 21.1. DB error
+    Router --> UI: 21.2. Error response
+    UI --> Author: 21.3. Alert save failed
+end
+
+SaveTrans --> Router: 22. Success
+deactivate SaveTrans
+
+Router --> UI: 22. Confirm saved
+deactivate Router
+
+UI --> Author: 23. Show success
+
+deactivate UI
+deactivate Author

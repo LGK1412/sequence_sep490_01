@@ -54,13 +54,13 @@ Router -> FastNovel: 9. POST /fast-novel-translation
 activate FastNovel
 
 opt AI / Network Error
-    FastNovel --x Router: 9.1. Timeout / failure
+    FastNovel --> Router: 9.1. Timeout / failure
     Router --> TranslatorPanel: 9.2. HTTP error
     TranslatorPanel --> TextChapter: 9.3. Show error
     TextChapter --> Author: 9.4. Show error
 end
 
-ref over Router, FastNovel: Subsequence - AI Translation (Ollama Agent)
+ref over Router: 64.b.i. Subsequence - AI Translation (Ollama Agent)
 
 FastNovel --> Router : 10. translated_text
 deactivate FastNovel
